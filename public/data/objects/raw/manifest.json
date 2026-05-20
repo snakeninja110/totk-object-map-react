@@ -1,0 +1,88 @@
+{
+  "source": "https://radar-totk.zeldamods.org",
+  "generatedAt": "2026-05-19T14:18:10.947Z",
+  "mapType": "MainAndMinusField",
+  "mapName": "",
+  "limit": -1,
+  "queries": {
+    "LocationMarker": {
+      "query": "LocationMarker",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/locationmarker.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 1038
+    },
+    "TBox": {
+      "query": "TBox",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/tbox.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 1347
+    },
+    "Enemy": {
+      "query": "Enemy",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/enemy.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 9467
+    },
+    "Weapon": {
+      "query": "Weapon",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/weapon.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 7554
+    },
+    "Korok": {
+      "query": "Korok",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/korok.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 2854
+    },
+    "LightRoot": {
+      "query": "LightRoot",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/lightroot.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 120
+    },
+    "Cave": {
+      "query": "Cave",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/cave.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 29141
+    },
+    "Shop": {
+      "query": "Shop",
+      "file": "public/data/objects/raw/MainAndMinusField/_all/shop.json",
+      "written": 1,
+      "skipped": 0,
+      "missing": 0,
+      "failed": 0,
+      "objects": 52
+    }
+  },
+  "totals": {
+    "written": 8,
+    "skipped": 0,
+    "missing": 0,
+    "failed": 0,
+    "objects": 51573
+  }
+}

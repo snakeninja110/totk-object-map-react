@@ -1,0 +1,1122 @@
+{
+  "source": "https://radar-totk.zeldamods.org/objs/MainAndMinusField/?q=Shop&withMapNames=true&limit=-1",
+  "generatedAt": "2026-05-19T14:18:28.196Z",
+  "mapType": "MainAndMinusField",
+  "mapName": "",
+  "query": "Shop",
+  "limit": -1,
+  "objects": [
+    {
+      "objid": 23177,
+      "map_type": "MainField",
+      "map_name": "B-3",
+      "hash_id": "0x3370bc5c75227459",
+      "name": "LocationMarker",
+      "fieldarea": "Surface18",
+      "region": "Rospro Pass",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_Rito",
+      "pos": [
+        -3631.49,
+        292.22,
+        -1787.28
+      ]
+    },
+    {
+      "objid": 38517,
+      "map_type": "MainField",
+      "map_name": "B-7",
+      "hash_id": "0x3370bc5c4db26b23",
+      "name": "LocationMarker",
+      "fieldarea": "Surface72",
+      "region": "Gerudo Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_Gerudo",
+      "pos": [
+        -3275.5,
+        200,
+        2552
+      ]
+    },
+    {
+      "objid": 41227,
+      "map_type": "MainField",
+      "map_name": "B-7",
+      "hash_id": "0x3370bc5cc78b7655",
+      "name": "LocationMarker",
+      "fieldarea": "Surface87",
+      "region": "Gerudo Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopJewelry_Gerudo",
+      "pos": [
+        -3836.8,
+        200,
+        2877.07
+      ]
+    },
+    {
+      "objid": 42530,
+      "map_type": "MainField",
+      "map_name": "B-7",
+      "hash_id": "0x780daae30c18f615",
+      "name": "LocationMarker",
+      "fieldarea": "Surface87",
+      "region": "Gerudo Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "RentalZarashiShop_Gerudo",
+      "pos": [
+        -3770,
+        200,
+        2925.5
+      ]
+    },
+    {
+      "objid": 42630,
+      "map_type": "MainField",
+      "map_name": "B-7",
+      "hash_id": "0x6088319db90d92db",
+      "name": "LocationMarker",
+      "fieldarea": "Surface87",
+      "region": "Gerudo Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "RentalZarashiShop_Gerudo",
+      "pos": [
+        -3902,
+        200,
+        2882.5
+      ]
+    },
+    {
+      "objid": 73723,
+      "map_type": "MainField",
+      "map_name": "C-7",
+      "hash_id": "0x127a96e26e71036b",
+      "name": "LocationArea",
+      "fieldarea": "Surface72",
+      "region": "Gerudo Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "RentalZarashiShop_GerudoDesert",
+      "pos": [
+        -2995.22,
+        105,
+        2325.03
+      ]
+    },
+    {
+      "objid": 110354,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x93ef743adfcc6707",
+      "name": "PicObj_HyruleCity_Shop_A_01",
+      "fieldarea": "Surface76",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -540.13,
+        132.87,
+        -484.09
+      ]
+    },
+    {
+      "objid": 110600,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x416abd908e3426c3",
+      "name": "TwnObj_BaseCampPharmacyParts_A_02",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -203.46,
+        125,
+        -86.62
+      ]
+    },
+    {
+      "objid": 110607,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xd2ad25761efe3663",
+      "name": "TwnObj_BaseCampPharmacyParts_A_03",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -206.31,
+        128.6,
+        -86.62
+      ]
+    },
+    {
+      "objid": 111838,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xd19732a73878ed8f",
+      "name": "StaticNavMeshCutArea",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -209.33,
+        125,
+        -88.62
+      ]
+    },
+    {
+      "objid": 113718,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x2cab15447720c442",
+      "name": "Mannequin_005_Upper",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_011_Upper"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -207.16,
+        124.9,
+        -88.16
+      ]
+    },
+    {
+      "objid": 113719,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xf22d0e5e09309a67",
+      "name": "Obj_ArrowBundle_A_01",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.58,
+        125.85,
+        -77.94
+      ]
+    },
+    {
+      "objid": 113720,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x3e22e17faed137a0",
+      "name": "Mannequin_001_Lower",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_001_Lower"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.53,
+        125,
+        -82.43
+      ]
+    },
+    {
+      "objid": 113721,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x23136ca5d68fdc95",
+      "name": "Npc_BaseCamp012",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -209.61,
+        124.74,
+        -85.24
+      ]
+    },
+    {
+      "objid": 113722,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x6788d7df0438b848",
+      "name": "Mannequin_004_Upper",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_009_Upper"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -205.31,
+        124.9,
+        -87.42
+      ]
+    },
+    {
+      "objid": 113723,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xc14d32cb1fbf2f8d",
+      "name": "Item_Material_10",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.26,
+        125.74,
+        -74.82
+      ]
+    },
+    {
+      "objid": 113724,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xbfe70473829f561b",
+      "name": "Item_FishGet_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -210.59,
+        125.81,
+        -74.03
+      ]
+    },
+    {
+      "objid": 113725,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xcd3c38e520fe2500",
+      "name": "Mannequin_001_Upper",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_001_Upper"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.5,
+        125,
+        -84.11
+      ]
+    },
+    {
+      "objid": 113727,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x4a6db5f924d0f42a",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.47,
+        125.93,
+        -79.6
+      ]
+    },
+    {
+      "objid": 113728,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xc3bddc41306abdfd",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.77,
+        125.84,
+        -79.75
+      ]
+    },
+    {
+      "objid": 113729,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xaaec4820adc1434d",
+      "name": "Mannequin_001_Head",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_001_Head"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.58,
+        125,
+        -85.81
+      ]
+    },
+    {
+      "objid": 113730,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xdee4aa79f7a69708",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.41,
+        125.93,
+        -79.96
+      ]
+    },
+    {
+      "objid": 113731,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x7efe777bfa5b97b4",
+      "name": "Mannequin_003_Upper",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_012_Upper"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -209.01,
+        124.9,
+        -88.96
+      ]
+    },
+    {
+      "objid": 113732,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xf178a98465fcf32a",
+      "name": "Obj_ArrowBundle_A_01",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.85,
+        125.77,
+        -77.92
+      ]
+    },
+    {
+      "objid": 113733,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x2a5f3daab6b5df66",
+      "name": "Obj_ArrowBundle_A_01",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.35,
+        125.92,
+        -77.97
+      ]
+    },
+    {
+      "objid": 113734,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xed4ee3364e91f487",
+      "name": "Item_Material_10",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.08,
+        125.71,
+        -75.04
+      ]
+    },
+    {
+      "objid": 113735,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xe592b62b7b12f61e",
+      "name": "Item_Material_10",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.54,
+        125.71,
+        -74.84
+      ]
+    },
+    {
+      "objid": 113736,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xec385838638a0848",
+      "name": "Item_FishGet_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -210.41,
+        125.87,
+        -73.57
+      ]
+    },
+    {
+      "objid": 113737,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x54fdfaa8fea36963",
+      "name": "Item_FishGet_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -210.5,
+        125.84,
+        -73.8
+      ]
+    },
+    {
+      "objid": 113738,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xb9cf6664e022d517",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.85,
+        125.84,
+        -80.1
+      ]
+    },
+    {
+      "objid": 113739,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xbc7d4ff53d24113c",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.43,
+        125.95,
+        -80.33
+      ]
+    },
+    {
+      "objid": 113740,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xc64090da65bedc59",
+      "name": "Item_Fruit_A",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": {
+        "type": "Table",
+        "value": [
+          "Default"
+        ]
+      },
+      "pos": [
+        -204.72,
+        125.85,
+        -80.43
+      ]
+    },
+    {
+      "objid": 113741,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xb43e12b6bcd102be",
+      "name": "Item_Material_03",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -205.69,
+        126.15,
+        -76.04
+      ]
+    },
+    {
+      "objid": 113742,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x5a998b853dd9b14a",
+      "name": "Obj_ArrowBundle_A_01",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.74,
+        125.85,
+        -77.58
+      ]
+    },
+    {
+      "objid": 113743,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xc8637e1799af9213",
+      "name": "Obj_ArrowBundle_A_01",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -204.48,
+        125.91,
+        -77.59
+      ]
+    },
+    {
+      "objid": 113744,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xd83372bb595d5a62",
+      "name": "LocationMarker",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_BaseCamp",
+      "pos": [
+        -205.77,
+        125.37,
+        -86.8
+      ]
+    },
+    {
+      "objid": 113745,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x7b8a906193702404",
+      "name": "Mannequin_008_Upper",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": [
+        "Armor_017_Upper"
+      ],
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -210.87,
+        124.9,
+        -89.74
+      ]
+    },
+    {
+      "objid": 113746,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x35e8043029d1c32e",
+      "name": "Item_Material_05",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -207.89,
+        125.77,
+        -74.76
+      ]
+    },
+    {
+      "objid": 113747,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x9103bf82ba5ccae2",
+      "name": "Item_Material_05",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.45,
+        125.77,
+        -74.54
+      ]
+    },
+    {
+      "objid": 113748,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x3b0aa372e65d5fda",
+      "name": "Item_Material_05",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.05,
+        125.66,
+        -75.14
+      ]
+    },
+    {
+      "objid": 113749,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xc0f1182c5b764e3e",
+      "name": "Item_Material_05",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -208.59,
+        125.66,
+        -74.92
+      ]
+    },
+    {
+      "objid": 113750,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x5de91daed1056564",
+      "name": "Item_Material_03",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -206.57,
+        126.13,
+        -75.63
+      ]
+    },
+    {
+      "objid": 113751,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0x959ecc17373ddef8",
+      "name": "Item_Material_03",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -206.14,
+        126.13,
+        -75.85
+      ]
+    },
+    {
+      "objid": 114632,
+      "map_type": "MainField",
+      "map_name": "E-4",
+      "hash_id": "0xe6e3e405155e0be3",
+      "name": "NavMeshCutBoxArea",
+      "fieldarea": "Surface6",
+      "region": "Lookout Landing",
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -209.64,
+        125,
+        -88.75
+      ]
+    },
+    {
+      "objid": 170845,
+      "map_type": "MainField",
+      "map_name": "G-2",
+      "hash_id": "0x3370bc5cde68cb95",
+      "name": "LocationMarker",
+      "fieldarea": "Surface105",
+      "region": "Eldin Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_Goron",
+      "pos": [
+        1642.87,
+        490.16,
+        -2409.2
+      ]
+    },
+    {
+      "objid": 172338,
+      "map_type": "MainField",
+      "map_name": "G-2",
+      "hash_id": "0x62f22d66c4ae3d99",
+      "name": "FldObj_DeathMtArtifactYunSignboard_A_01",
+      "fieldarea": "Surface66",
+      "region": "Eldin Canyon",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        1535.69,
+        430,
+        -2101.3
+      ]
+    },
+    {
+      "objid": 190077,
+      "map_type": "MainField",
+      "map_name": "G-6",
+      "hash_id": "0x3370bc5c42595a61",
+      "name": "LocationMarker",
+      "fieldarea": "Surface19",
+      "region": "Sahasra Slope",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_Kakariko",
+      "pos": [
+        1854.69,
+        239.38,
+        981.32
+      ]
+    },
+    {
+      "objid": 234816,
+      "map_type": "MainField",
+      "map_name": "H-8",
+      "hash_id": "0xe9b202025f725352",
+      "name": "LocationMarker",
+      "fieldarea": "Surface62",
+      "region": "Rabella Wetlands",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "TreasureBoxShop",
+      "pos": [
+        2969.92,
+        135.36,
+        3377.71
+      ]
+    },
+    {
+      "objid": 245801,
+      "map_type": "MainField",
+      "map_name": "I-3",
+      "hash_id": "0x4fc89edc6d0f0785",
+      "name": "LocationMarker",
+      "fieldarea": "Surface33",
+      "region": "Ulri Mountain",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ScrapShop",
+      "pos": [
+        3995,
+        235.22,
+        -1637
+      ]
+    },
+    {
+      "objid": 260890,
+      "map_type": "MainField",
+      "map_name": "I-7",
+      "hash_id": "0x3370bc5ced963f6d",
+      "name": "LocationMarker",
+      "fieldarea": "Surface13",
+      "region": "Mount Lanayru",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopArmor_Hateno",
+      "pos": [
+        3356.95,
+        238.59,
+        2127.88
+      ]
+    },
+    {
+      "objid": 260892,
+      "map_type": "MainField",
+      "map_name": "I-7",
+      "hash_id": "0x3370bc5c08cac9f4",
+      "name": "LocationMarker",
+      "fieldarea": "Surface13",
+      "region": "Mount Lanayru",
+      "scale": 0,
+      "equip": null,
+      "map_static": 0,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "Location": "ShopDye_Hateno",
+      "pos": [
+        3403.99,
+        238.59,
+        2152.26
+      ]
+    },
+    {
+      "objid": 392160,
+      "map_type": "MinusField",
+      "map_name": "E-6",
+      "hash_id": "0x5fb0b600bb97556c",
+      "name": "Npc_Zonau_Golem_Servant_Minus0001",
+      "fieldarea": "Depths46",
+      "region": null,
+      "scale": 0,
+      "equip": null,
+      "map_static": 1,
+      "korok_id": null,
+      "korok_type": null,
+      "drop": null,
+      "pos": [
+        -808.44,
+        -415.18,
+        1928.65
+      ]
+    }
+  ]
+}

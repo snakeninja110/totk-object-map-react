@@ -1,6 +1,25 @@
 export type MapLayer = 'Sky' | 'Surface' | 'Depths'
 
-export type ObjectCategory = 'shrine' | 'chest' | 'weapon' | 'monster'
+export type TileSource = 'local' | 'remote'
+
+export type ObjectDataSource = 'local' | 'remote'
+
+export type ObjectCategory =
+  | 'location'
+  | 'place'
+  | 'cave'
+  | 'chasm'
+  | 'dragonTear'
+  | 'dispenser'
+  | 'korok'
+  | 'shop'
+  | 'lightroot'
+  | 'techLab'
+  | 'tower'
+  | 'shrine'
+  | 'chest'
+  | 'weapon'
+  | 'enemy'
 
 export type MapObject = {
   id: string
@@ -12,6 +31,9 @@ export type MapObject = {
   y: number
   z: number
   color: string
+  iconKey?: string
+  showLevel?: string
+  priority?: number
   tags: string[]
   note: string
 }

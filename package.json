@@ -9,7 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch:map-unit": "node scripts/fetch-map-unit.mjs",
-    "fetch:tiles": "node scripts/fetch-tiles.mjs"
+    "build:objects": "node scripts/build-object-index.mjs",
+    "verify:objects": "node scripts/verify-objects.mjs",
+    "fetch:tiles": "node scripts/fetch-tiles.mjs",
+    "verify:tiles": "node scripts/verify-tiles.mjs"
   },
   "dependencies": {
     "fuse.js": "^7.3.0",

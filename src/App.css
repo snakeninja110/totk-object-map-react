@@ -1,3 +1,14 @@
+@font-face {
+  font-family: CalamityB;
+  font-weight: 700;
+  src: url('/fonts/Calamity-Bold.otf') format('opentype');
+}
+
+@font-face {
+  font-family: Sheikah;
+  src: url('/fonts/Sheikah-Complete.ttf') format('truetype');
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr) 320px;
@@ -121,6 +132,10 @@
   background: rgba(9, 14, 12, 0.35);
 }
 
+.source-switch {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .segmented button,
 .category-row,
 .result-list button {
@@ -140,6 +155,17 @@
 .segmented button.active {
   color: #1b211b;
   background: #f0c35d;
+}
+
+.data-status {
+  margin: -2px 0 0;
+  color: #879a8e;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.data-status.error {
+  color: #ff9b8f;
 }
 
 .category-row {
@@ -224,13 +250,71 @@
   font-size: 12px;
 }
 
+.location-map-label {
+  display: grid;
+  place-items: center;
+  width: 220px !important;
+  height: 40px !important;
+  border: 0;
+  background: transparent;
+  color: #cdbc63;
+  text-align: center;
+  text-shadow:
+    1px 1px 0 rgba(86, 74, 31, 0.85),
+    -1px 1px 0 rgba(86, 74, 31, 0.85),
+    1px -1px 0 rgba(86, 74, 31, 0.85),
+    -1px -1px 0 rgba(86, 74, 31, 0.85),
+    0 3px 2px rgba(42, 36, 15, 0.82),
+    0 0 6px rgba(36, 28, 11, 0.72);
+}
+
+.location-map-label-name {
+  max-width: 220px;
+  overflow: hidden;
+  color: #cdbc63;
+  font-family: CalamityB, Arial, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 0.9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-map-label-glyphs {
+  max-width: 200px;
+  overflow: hidden;
+  margin-top: 0;
+  color: rgba(205, 188, 99, 0.72);
+  font-family: Sheikah, CalamityB, serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.location-map-label-sky .location-map-label-name,
+.location-map-label-sky .location-map-label-glyphs {
+  color: rgba(205, 219, 184, 0.82);
+}
+
+.location-map-label-depths .location-map-label-name,
+.location-map-label-depths .location-map-label-glyphs {
+  color: rgba(139, 198, 204, 0.75);
+}
+
 .map-toolbar {
   position: absolute;
   z-index: 500;
   top: 16px;
   right: 16px;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
+  max-width: min(560px, calc(100% - 32px));
 }
 
 .map-toolbar span {
