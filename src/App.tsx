@@ -1,27 +1,39 @@
 import { useEffect, useMemo, useState } from 'react'
 import Fuse from 'fuse.js'
 import L from 'leaflet'
-import { CircleMarker, MapContainer, Marker, Popup, TileLayer } from 'react-leaflet'
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMapEvents,
+} from 'react-leaflet'
 import {
   Bookmark,
   Box,
   CircleDot,
+  CircleCheck,
+  Funnel,
   FlaskConical,
-  Layers,
   Leaf,
+  ListChecks,
   MapPin,
   Mountain,
   RadioTower,
   Search,
+  Settings,
   ShoppingBag,
   Sparkle,
   Shield,
   Swords,
+  Wrench,
   Waypoints,
 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
-import { loadObjects } from './services/objectData'
+import { REMOTE_STATIC_LOCATIONS_QUERY, loadObjects } from './services/objectData'
+import { useMapUiStore } from './stores/mapUiStore'
 import type { MapLayer, MapObject, ObjectDataSource, TileSource } from './types/map'
 import {
   DEFAULT_ZOOM,
@@ -63,6 +75,25 @@ const tileAttributions: Record<TileSource, string> = {
 
 const DISPLAY_OBJECT_LIMIT = 1000
 
+// 侧边栏分类按钮顺序，按原站 Filter 面板的主分类优先展示。
+const categoryOrder: Array<MapObject['category']> = [
+  'location',
+  'shrine',
+  'place',
+  'tower',
+  'shop',
+  'techLab',
+  'chasm',
+  'cave',
+  'korok',
+  'dragonTear',
+  'lightroot',
+  'dispenser',
+  'chest',
+  'weapon',
+  'enemy',
+]
+
 const categoryIcons = {
   location: MapPin,
   place: Bookmark,
@@ -79,6 +110,23 @@ const categoryIcons = {
   chest: Box,
   weapon: Swords,
   enemy: Waypoints,
+}
+
+// 分类按钮优先使用从原站拉取的图标资源；缺失时回退到 lucide 图标。
+const categoryIconAssets: Partial<Record<MapObject['category'], string>> = {
+  location: '/icons/mapicon_village.svg',
+  place: '/icons/mapicon_hatago.svg',
+  cave: '/icons/cave.png',
+  chasm: '/icons/chasm.png',
+  dragonTear: '/icons/tear.svg',
+  dispenser: '/icons/dispenser.svg',
+  korok: '/icons/mapicon_korok.png',
+  shop: '/icons/mapicon_shop_yorozu.svg',
+  lightroot: '/icons/lightroot.svg',
+  techLab: '/icons/mapicon_labo.svg',
+  tower: '/icons/tower.svg',
+  shrine: '/icons/shrine.svg',
+  weapon: '/icons/sword.svg',
 }
 
 const categoryLabels: Record<MapObject['category'], string> = {
@@ -99,8 +147,9 @@ const categoryLabels: Record<MapObject['category'], string> = {
   enemy: 'Enemies',
 }
 
+// Remote 分类数据源配置；Locations 使用源站静态 marker 数据，其他分类继续走 radar API 查询词。
 const remoteCategoryQueries: Record<MapObject['category'], string> = {
-  location: 'LocationMarker',
+  location: REMOTE_STATIC_LOCATIONS_QUERY,
   place: 'LocationMarker',
   cave: 'Cave',
   chasm: 'Chasm',
@@ -121,6 +170,20 @@ const categoryPreferredLayers: Partial<Record<MapObject['category'], MapLayer>> 
   lightroot: 'Depths',
 }
 
+// 先按原站侧栏展示地图区域入口；当前仅提供界面占位，后续再接入区域图层数据。
+const mapAreaOptions = [
+  'None',
+  'Map Tower Areas',
+  'Surface Field Map Areas',
+  'Depths Field Map Areas',
+  'Cave Field Map Areas',
+  'Sky Field Map Areas',
+  'Sky Regions (approximate)',
+  'Cave Regions (approximate)',
+  'Cave Regions (detailed)',
+  'Cherry Blossom Trees',
+]
+
 const locationLabelIconCache = new Map<string, L.DivIcon>()
 const overviewLocationNames: Record<string, string> = {
   MapRegion_Eldin: 'Eldin',
@@ -134,21 +197,44 @@ const overviewLocationNames: Record<string, string> = {
 }
 
 function App() {
-  const [activeLayer, setActiveLayer] = useState<MapLayer>('Surface')
-  const [tileSource, setTileSource] = useState<TileSource>('remote')
-  const [objectSource, setObjectSource] = useState<ObjectDataSource>('local')
+  const activeLayer = useMapUiStore((state) => state.activeLayer)
+  const tileSource = useMapUiStore((state) => state.tileSource)
+  const objectSource = useMapUiStore((state) => state.objectSource)
+  const activeCategories = useMapUiStore((state) => state.activeCategories)
+  const query = useMapUiStore((state) => state.query)
+  const selectedObjectId = useMapUiStore((state) => state.selectedObjectId)
+  const setActiveLayer = useMapUiStore((state) => state.setActiveLayer)
+  const setTileSource = useMapUiStore((state) => state.setTileSource)
+  const setObjectSource = useMapUiStore((state) => state.setObjectSource)
+  const toggleCategory = useMapUiStore((state) => state.toggleCategory)
+  const clearCategories = useMapUiStore((state) => state.clearCategories)
+  const setQuery = useMapUiStore((state) => state.setQuery)
+  const selectObject = useMapUiStore((state) => state.selectObject)
   const [objects, setObjects] = useState<MapObject[]>([])
   const [objectsLoading, setObjectsLoading] = useState(false)
   const [objectsError, setObjectsError] = useState<string | null>(null)
-  const [activeCategory, setActiveCategory] = useState<MapObject['category'] | 'all'>(
-    'all',
+  const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM)
+  const selectedCategorySet = useMemo(
+    () => new Set<MapObject['category']>(activeCategories),
+    [activeCategories],
   )
-  const [query, setQuery] = useState('')
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
-  const remoteCategoryQuery =
-    activeCategory === 'all' ? '' : remoteCategoryQueries[activeCategory]
-  const objectLoadQuery =
-    objectSource === 'remote' ? query.trim() || remoteCategoryQuery : ''
+  const objectLoadQueries = useMemo(() => {
+    if (objectSource === 'local') {
+      return ['']
+    }
+
+    const cleanQuery = query.trim()
+
+    if (cleanQuery) {
+      return [cleanQuery]
+    }
+
+    const categoryQueries = [
+      ...new Set(activeCategories.map((category) => remoteCategoryQueries[category])),
+    ]
+
+    return categoryQueries.length > 0 ? categoryQueries : ['']
+  }, [activeCategories, objectSource, query])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -160,13 +246,17 @@ function App() {
       }
     })
 
-    loadObjects({
-      source: objectSource,
-      query: objectLoadQuery,
-      signal: controller.signal,
-    })
-      .then((nextObjects) => {
-        setObjects(nextObjects)
+    Promise.all(
+      objectLoadQueries.map((objectLoadQuery) =>
+        loadObjects({
+          source: objectSource,
+          query: objectLoadQuery,
+          signal: controller.signal,
+        }),
+      ),
+    )
+      .then((objectGroups) => {
+        setObjects(dedupeObjects(objectGroups.flat()))
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) {
@@ -183,7 +273,7 @@ function App() {
       })
 
     return () => controller.abort()
-  }, [objectLoadQuery, objectSource])
+  }, [objectLoadQueries, objectSource])
 
   const fuse = useMemo(
     () =>
@@ -192,8 +282,9 @@ function App() {
         ignoreLocation: true,
         minMatchCharLength: 2,
         keys: [
-          { name: 'name', weight: 0.36 },
-          { name: 'actor', weight: 0.32 },
+          { name: 'displayName', weight: 0.32 },
+          { name: 'name', weight: 0.28 },
+          { name: 'actor', weight: 0.25 },
           { name: 'tags', weight: 0.2 },
           { name: 'category', weight: 0.07 },
           { name: 'layer', weight: 0.05 },
@@ -213,32 +304,31 @@ function App() {
   }, [fuse, objectSource, objects, query])
 
   const visibleObjects = useMemo(() => {
-    const usesDefaultLocationOverview =
-      objectSource === 'local' &&
-      activeCategory === 'location' &&
-      query.trim().length === 0
+    const usesLocationZoomFilter =
+      selectedCategorySet.has('location') && query.trim().length === 0
 
     return searchedObjects.filter((object) => {
       const matchesLayer = object.layer === activeLayer
       const matchesCategory =
-        activeCategory === 'all' || object.category === activeCategory
+        selectedCategorySet.size === 0 || selectedCategorySet.has(object.category)
 
       if (
-        usesDefaultLocationOverview &&
+        usesLocationZoomFilter &&
         object.category === 'location' &&
-        !isOverviewLocation(object)
+        !shouldShowLocationLabel(object, activeLayer, mapZoom)
       ) {
         return false
       }
 
       return matchesLayer && matchesCategory
     })
-  }, [activeCategory, activeLayer, objectSource, query, searchedObjects])
-
-  const layerObjectCount = useMemo(
-    () => searchedObjects.filter((item) => item.layer === activeLayer).length,
-    [activeLayer, searchedObjects],
-  )
+  }, [
+    activeLayer,
+    mapZoom,
+    query,
+    searchedObjects,
+    selectedCategorySet,
+  ])
 
   const displayedObjects = useMemo(
     () => visibleObjects.slice(0, DISPLAY_OBJECT_LIMIT),
@@ -253,7 +343,7 @@ function App() {
   const objectStatusText = getObjectStatusText({
     objectSource,
     query,
-    activeCategory,
+    activeCategories,
     objectsLoading,
     objectsError,
     objectCount: objects.length,
@@ -261,25 +351,33 @@ function App() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Map controls">
-        <div className="brand">
-          <div className="brand-mark">
-            <Layers size={20} />
-          </div>
-          <div>
-            <h1>TotK Object Map</h1>
-            <p>React static data prototype</p>
-          </div>
-        </div>
+      <aside className="sidebar filter-sidebar" aria-label="Map controls">
+        <nav className="filter-rail" aria-label="Filter sections">
+          <Search size={28} />
+          <Funnel size={28} className="active" />
+          <ListChecks size={28} />
+          <Waypoints size={28} />
+          <CircleCheck size={28} />
+          <Wrench size={28} />
+          <Settings size={28} />
+        </nav>
 
-        <label className="search-box">
-          <Search size={17} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name, actor, tag"
-          />
-        </label>
+        <div className="filter-panel">
+          <header className="filter-header">
+            <h1>Filter</h1>
+            <button type="button" onClick={clearCategories}>
+              Clear tags
+            </button>
+          </header>
+
+          <label className="search-box">
+            <Search size={17} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name, actor, tag"
+            />
+          </label>
 
         <section className="control-group" aria-labelledby="layer-heading">
           <h2 id="layer-heading">Layer</h2>
@@ -289,10 +387,7 @@ function App() {
                 key={layer}
                 type="button"
                 className={layer === activeLayer ? 'active' : ''}
-                onClick={() => {
-                  setActiveLayer(layer)
-                  setSelectedObjectId(null)
-                }}
+                onClick={() => setActiveLayer(layer)}
               >
                 {layer}
               </button>
@@ -324,10 +419,7 @@ function App() {
                 key={source}
                 type="button"
                 className={source === objectSource ? 'active' : ''}
-                onClick={() => {
-                  setObjectSource(source)
-                  setSelectedObjectId(null)
-                }}
+                onClick={() => setObjectSource(source)}
               >
                 {source === 'local' ? 'Local Data' : 'Remote API'}
               </button>
@@ -339,23 +431,11 @@ function App() {
         </section>
 
         <section className="control-group" aria-labelledby="category-heading">
-          <h2 id="category-heading">Categories</h2>
-          <button
-            type="button"
-            className={`category-row ${activeCategory === 'all' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveCategory('all')
-              setSelectedObjectId(null)
-            }}
-          >
-            <Bookmark size={17} />
-            <span>All objects</span>
-            <strong>{layerObjectCount}</strong>
-          </button>
-
-          {(Object.keys(categoryLabels) as Array<MapObject['category']>).map(
-            (category) => {
+          <div className="category-grid">
+            {categoryOrder.map((category) => {
               const Icon = categoryIcons[category]
+              const iconAsset = categoryIconAssets[category]
+              const isSelected = selectedCategorySet.has(category)
               const count = searchedObjects.filter(
                 (item) => item.layer === activeLayer && item.category === category,
               ).length
@@ -363,29 +443,44 @@ function App() {
               return (
                 <button
                   type="button"
-                  className={`category-row ${
-                    activeCategory === category ? 'active' : ''
-                  }`}
-                  onClick={() => {
-                    setActiveCategory(category)
-                    const preferredLayer = categoryPreferredLayers[category]
-
-                    if (preferredLayer) {
-                      setActiveLayer(preferredLayer)
-                    }
-
-                    setSelectedObjectId(null)
-                  }}
+                  className={`category-tile ${isSelected ? 'active' : ''}`}
+                  aria-pressed={isSelected}
+                  onClick={() => toggleCategory(category, categoryPreferredLayers[category])}
                   key={category}
                 >
-                  <Icon size={17} />
+                  <span className="category-icon">
+                    {iconAsset ? <img src={iconAsset} alt="" /> : <Icon size={28} />}
+                  </span>
                   <span>{categoryLabels[category]}</span>
                   <strong>{count}</strong>
                 </button>
               )
-            },
-          )}
+            })}
+          </div>
         </section>
+
+          <section className="map-area-panel" aria-labelledby="map-area-heading">
+            <h2 id="map-area-heading">Visible map areas</h2>
+            {mapAreaOptions.map((item, index) => (
+              <label key={item} className="map-area-option">
+                <input type="radio" name="map-area" defaultChecked={index === 0} />
+                <span>{item}</span>
+              </label>
+            ))}
+            <label className="map-area-filter">
+              <span>Filter map areas</span>
+              <div>
+                <input placeholder="Example: 1,2,3,64" />
+                <button type="button" aria-label="Apply map area filter">
+                  <Funnel size={22} />
+                </button>
+              </div>
+            </label>
+            <label className="map-area-fill">
+              <input type="checkbox" defaultChecked />
+              <span>Fill map areas with color</span>
+            </label>
+          </section>
 
         <section className="results" aria-labelledby="results-heading">
           <h2 id="results-heading">
@@ -400,14 +495,15 @@ function App() {
                 key={object.id}
                 type="button"
                 className={selectedObject?.id === object.id ? 'active' : ''}
-                onClick={() => setSelectedObjectId(object.id)}
+                onClick={() => selectObject(object.id)}
               >
-                <span>{object.name}</span>
+                <span>{getObjectDisplayName(object)}</span>
                 <small>{object.actor}</small>
               </button>
             ))}
           </div>
         </section>
+        </div>
       </aside>
 
       <section className="map-stage" aria-label="Interactive map">
@@ -430,13 +526,14 @@ function App() {
             maxNativeZoom={MAX_NATIVE_ZOOM}
             attribution={tileAttributions[tileSource]}
           />
+          <MapZoomSync onZoomChange={setMapZoom} />
 
           {displayedObjects.map((object) => (
             <ObjectMarker
               key={object.id}
               object={object}
-              renderLocationLabel={activeCategory === 'location'}
-              onSelect={() => setSelectedObjectId(object.id)}
+              renderLocationLabel={selectedCategorySet.has('location')}
+              onSelect={() => selectObject(object.id)}
             />
           ))}
         </MapContainer>
@@ -445,6 +542,7 @@ function App() {
           <span>{activeLayer}</span>
           <span>{tileSource === 'local' ? 'Local tiles' : 'Remote tiles'}</span>
           <span>{objectSource === 'local' ? 'Local data' : 'Remote API'}</span>
+          <span>Zoom {mapZoom}</span>
           <span>{layerFolders[activeLayer]}</span>
           <span>{visibleObjects.length} objects</span>
           {visibleObjects.length > displayedObjects.length ? (
@@ -458,7 +556,7 @@ function App() {
           <>
             <div className="detail-header">
               <p>{categoryLabels[selectedObject.category]}</p>
-              <h2>{selectedObject.name}</h2>
+              <h2>{getObjectDisplayName(selectedObject)}</h2>
             </div>
             <dl>
               <div>
@@ -492,6 +590,19 @@ function App() {
   )
 }
 
+// 监听 Leaflet 当前缩放层级，用于复刻源站按 ShowLevel 渐进显示地点名的规则。
+function MapZoomSync({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  const map = useMapEvents({
+    zoomend: () => onZoomChange(map.getZoom()),
+  })
+
+  useEffect(() => {
+    onZoomChange(map.getZoom())
+  }, [map, onZoomChange])
+
+  return null
+}
+
 function ObjectMarker({
   object,
   renderLocationLabel,
@@ -511,7 +622,7 @@ function ObjectMarker({
         }}
       >
         <Popup>
-          <strong>{object.name}</strong>
+          <strong>{getObjectDisplayName(object)}</strong>
           <span>{object.actor}</span>
         </Popup>
       </Marker>
@@ -530,7 +641,7 @@ function ObjectMarker({
         }}
       >
         <Popup>
-          <strong>{object.name}</strong>
+          <strong>{getObjectDisplayName(object)}</strong>
           <span>{object.actor}</span>
         </Popup>
       </Marker>
@@ -552,15 +663,25 @@ function ObjectMarker({
       }}
     >
       <Popup>
-        <strong>{object.name}</strong>
+        <strong>{getObjectDisplayName(object)}</strong>
         <span>{object.actor}</span>
       </Popup>
     </CircleMarker>
   )
 }
 
+function dedupeObjects(objects: MapObject[]) {
+  const objectsById = new Map<string, MapObject>()
+
+  for (const object of objects) {
+    objectsById.set(object.id, object)
+  }
+
+  return [...objectsById.values()]
+}
+
 function getLocationLabelIcon(object: MapObject) {
-  const label = formatLocationLabel(object.name)
+  const label = getObjectDisplayName(object)
   const cacheKey = `${object.layer}:${label}`
   const cached = locationLabelIconCache.get(cacheKey)
 
@@ -582,6 +703,18 @@ function getLocationLabelIcon(object: MapObject) {
   return icon
 }
 
+function getObjectDisplayName(object: MapObject) {
+  if (object.displayName) {
+    return object.displayName
+  }
+
+  if (object.category === 'location') {
+    return formatLocationLabel(object.name)
+  }
+
+  return object.name
+}
+
 function formatLocationLabel(name: string) {
   const overviewName = overviewLocationNames[name]
 
@@ -598,8 +731,59 @@ function formatLocationLabel(name: string) {
     .trim()
 }
 
-function isOverviewLocation(object: MapObject) {
-  return object.showLevel === 'Farthest' && object.name.startsWith('MapRegion_')
+function shouldShowLocationLabel(object: MapObject, activeLayer: MapLayer, zoom: number) {
+  if (object.name === 'Oasis') {
+    return false
+  }
+
+  if (!isStaticLocationLabel(object) || !matchesSourceLocationLayer(object, activeLayer)) {
+    return false
+  }
+
+  const showLevels = getLocationShowLevels(object)
+
+  return (
+    (showLevels.includes('Farthest') && zoom <= 4) ||
+    (showLevels.includes('Far') && zoom === 5) ||
+    (showLevels.includes('Near') && zoom === 5) ||
+    (showLevels.includes('') && zoom >= 6) ||
+    (showLevels.includes('Nearest') && zoom >= 6)
+  )
+}
+
+// 只有静态地点标签才参与缩放分级；未归类的普通对象不能被当成地名渲染。
+function isStaticLocationLabel(object: MapObject) {
+  return (
+    object.category === 'location' &&
+    (object.priority !== undefined ||
+      Boolean(object.showLevel) ||
+      (object.note.startsWith('Remote radar API') && object.name.startsWith('MapRegion_')))
+  )
+}
+
+// 源站用高度区间约束不同地图层的地点标签，这里保留同样的边界。
+function matchesSourceLocationLayer(object: MapObject, activeLayer: MapLayer) {
+  if (activeLayer === 'Sky') {
+    return object.y >= 950
+  }
+
+  if (activeLayer === 'Depths') {
+    return object.y <= -50
+  }
+
+  return object.y >= 0 && object.y <= 950
+}
+
+function getLocationShowLevels(object: MapObject) {
+  if (object.showLevel !== undefined) {
+    return object.showLevel.split(',').map((level) => level.trim())
+  }
+
+  if (object.note.startsWith('Remote radar API') && object.name.startsWith('MapRegion_')) {
+    return ['Farthest']
+  }
+
+  return ['']
 }
 
 function escapeHtml(value: string) {
@@ -617,14 +801,14 @@ function escapeHtml(value: string) {
 function getObjectStatusText({
   objectSource,
   query,
-  activeCategory,
+  activeCategories,
   objectsLoading,
   objectsError,
   objectCount,
 }: {
   objectSource: ObjectDataSource
   query: string
-  activeCategory: MapObject['category'] | 'all'
+  activeCategories: Array<MapObject['category']>
   objectsLoading: boolean
   objectsError: string | null
   objectCount: number
@@ -639,10 +823,10 @@ function getObjectStatusText({
 
   if (
     objectSource === 'remote' &&
-    activeCategory === 'all' &&
+    activeCategories.length === 0 &&
     query.trim().length < 2
   ) {
-    return 'Enter a search term or choose a category to query radar API.'
+    return 'Enter a search term or choose categories to query radar API.'
   }
 
   return `${objectCount} ${objectSource === 'local' ? 'local objects' : 'remote results'}`

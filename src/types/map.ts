@@ -24,6 +24,8 @@ export type ObjectCategory =
 export type MapObject = {
   id: string
   name: string
+  // 地图上展示给用户看的名称；name 保留源数据 ID，便于追踪和搜索。
+  displayName?: string
   actor: string
   category: ObjectCategory
   layer: MapLayer

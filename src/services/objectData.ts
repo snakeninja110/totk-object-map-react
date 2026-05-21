@@ -7,7 +7,14 @@ import type {
 
 const LOCAL_OBJECTS_URL = '/data/objects/index.json'
 const RADAR_OBJECTS_URL = 'https://radar-totk.zeldamods.org/objs/MainAndMinusField/'
+const REMOTE_STATIC_MARKERS_URL =
+  'https://objmap-totk.zeldamods.org/game_files/map_summary/MainField/static.json'
+const REMOTE_LOCATION_NAMES_URL =
+  'https://objmap-totk.zeldamods.org/game_files/text/StaticMsg/LocationMarker.json'
 const REMOTE_RESULT_LIMIT = 500
+
+// Remote Locations 的内部查询标记；用于把地名加载切到源站静态 marker JSON，而不是 radar API。
+export const REMOTE_STATIC_LOCATIONS_QUERY = '__remote_static_locations__'
 
 type LoadObjectsParams = {
   source: ObjectDataSource
@@ -18,6 +25,23 @@ type LoadObjectsParams = {
 type LocalObjectIndex = {
   objects?: unknown
 }
+
+// 源站 map_summary static.json 的顶层结构；这里只读取 markers.Location。
+type StaticMarkerIndex = {
+  markers?: unknown
+}
+
+// 源站静态地点 marker 的原始字段；字段名保持源数据大小写，便于直接映射。
+type StaticLocationMarker = {
+  MessageID?: unknown
+  Priority?: unknown
+  Translate?: unknown
+  SaveFlag?: unknown
+  hash_id?: unknown
+  ShowLevel?: unknown
+}
+
+type LocationNameIndex = Record<string, string>
 
 type RadarObject = {
   objid?: unknown
@@ -45,6 +69,10 @@ export async function loadObjects({
   }
 
   const cleanQuery = query.trim()
+
+  if (cleanQuery === REMOTE_STATIC_LOCATIONS_QUERY) {
+    return loadRemoteStaticLocations(signal)
+  }
 
   if (cleanQuery.length < 2) {
     return []
@@ -91,6 +119,28 @@ async function loadRemoteObjects(query: string, signal?: AbortSignal) {
   return data.map(normalizeRadarObject)
 }
 
+async function loadRemoteStaticLocations(signal?: AbortSignal) {
+  const [markerResponse, nameResponse] = await Promise.all([
+    fetch(REMOTE_STATIC_MARKERS_URL, { signal }),
+    fetch(REMOTE_LOCATION_NAMES_URL, { signal }),
+  ])
+
+  if (!markerResponse.ok) {
+    throw new Error(`Failed to load remote static locations: ${markerResponse.status}`)
+  }
+
+  if (!nameResponse.ok) {
+    throw new Error(`Failed to load remote location names: ${nameResponse.status}`)
+  }
+
+  const data = (await markerResponse.json()) as StaticMarkerIndex
+  const names = (await nameResponse.json()) as LocationNameIndex
+  const markerGroups = isRecord(data.markers) ? data.markers : {}
+  const locations = Array.isArray(markerGroups.Location) ? markerGroups.Location : []
+
+  return locations.map((location) => normalizeStaticLocationMarker(location, names))
+}
+
 function parseMapObject(value: unknown): MapObject {
   if (!isRecord(value)) {
     throw new Error('Invalid object entry.')
@@ -103,6 +153,7 @@ function parseMapObject(value: unknown): MapObject {
   return {
     id: readString(value.id, 'unknown-object'),
     name: readString(value.name, 'Unnamed object'),
+    displayName: readString(value.displayName, ''),
     actor: readString(value.actor, 'UnknownActor'),
     category: parseCategory(value.category),
     layer: parseLayer(value.layer),
@@ -149,6 +200,52 @@ function normalizeRadarObject(value: RadarObject): MapObject {
     tags,
     note: `Remote radar API result${mapName ? ` from ${mapType}/${mapName}` : ''}.`,
   }
+}
+
+function normalizeStaticLocationMarker(
+  value: StaticLocationMarker,
+  names: LocationNameIndex,
+): MapObject {
+  const translate = isRecord(value.Translate) ? value.Translate : {}
+  const x = readNumber(translate.X)
+  const y = readNumber(translate.Y)
+  const z = readNumber(translate.Z)
+  const name = readString(value.MessageID, 'Unnamed location')
+  const layer = inferStaticLocationLayer(y)
+  const showLevel = typeof value.ShowLevel === 'string' ? value.ShowLevel : undefined
+  const priority =
+    typeof value.Priority === 'number' && Number.isFinite(value.Priority)
+      ? value.Priority
+      : undefined
+
+  return {
+    id: readString(value.hash_id, readString(value.SaveFlag, `remote-location-${x}-${y}-${z}`)),
+    name,
+    displayName: readString(names[name], ''),
+    actor: 'LocationMarker',
+    category: 'location',
+    layer,
+    x,
+    y,
+    z,
+    color: categoryColor('location'),
+    ...(showLevel !== undefined ? { showLevel } : {}),
+    ...(priority !== undefined ? { priority } : {}),
+    tags: ['location', 'remote-static-location', layer, name].filter(Boolean),
+    note: 'Remote static location marker from zeldamods map summary.',
+  }
+}
+
+function inferStaticLocationLayer(y: number): MapLayer {
+  if (y >= 950) {
+    return 'Sky'
+  }
+
+  if (y <= -50) {
+    return 'Depths'
+  }
+
+  return 'Surface'
 }
 
 function iconKeyForCategory(category: ObjectCategory) {

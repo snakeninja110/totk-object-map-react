@@ -5,6 +5,9 @@ const RAW_ROOT = path.resolve('public/data/objects/raw')
 const STATIC_MARKERS_FILE = path.resolve(
   'public/data/objects/static/mainfield-static.json',
 )
+const LOCATION_NAMES_FILE = path.resolve(
+  'public/data/objects/static/location-marker-names.json',
+)
 const OUT_FILE = path.resolve('public/data/objects/index.json')
 const CATEGORIES = [
   'location',
@@ -26,13 +29,15 @@ const CATEGORIES = [
 const LAYERS = ['Sky', 'Surface', 'Depths']
 
 const rawFiles = await collectJsonFiles(RAW_ROOT)
-const staticMarkersByHashId = await readStaticMarkers()
+const staticMarkerData = await readStaticMarkers()
+const staticMarkersByHashId = staticMarkerData.byHashId
 const objectsById = new Map()
 const stats = {
   rawFiles: 0,
   rawRecords: 0,
   duplicateRecords: 0,
   invalidRecords: 0,
+  staticLocationRecords: 0,
   outputRecords: 0,
   categories: Object.fromEntries(CATEGORIES.map((category) => [category, 0])),
   layers: Object.fromEntries(LAYERS.map((layer) => [layer, 0])),
@@ -70,6 +75,37 @@ for (const file of rawFiles) {
     stats.categories[object.category] += 1
     stats.layers[object.layer] += 1
   }
+}
+
+// radar 原始数据可能缺少少量静态地点；这里用源站 static.json 补齐，保证本地和远程 Locations 一致。
+for (const staticLocation of staticMarkerData.locations) {
+  if (objectsById.has(staticLocation.id)) {
+    const existing = objectsById.get(staticLocation.id)
+
+    if (existing.category !== 'location') {
+      const locationCopy = {
+        ...staticLocation,
+        id: `${staticLocation.id}:location`,
+      }
+
+      objectsById.set(locationCopy.id, locationCopy)
+      stats.staticLocationRecords += 1
+      stats.categories.location += 1
+      stats.layers[locationCopy.layer] += 1
+      continue
+    }
+
+    objectsById.set(staticLocation.id, {
+      ...existing,
+      displayName: staticLocation.displayName,
+    })
+    continue
+  }
+
+  objectsById.set(staticLocation.id, staticLocation)
+  stats.staticLocationRecords += 1
+  stats.categories.location += 1
+  stats.layers[staticLocation.layer] += 1
 }
 
 const objects = [...objectsById.values()].sort((a, b) => {
@@ -135,8 +171,10 @@ async function collectJsonFiles(dir) {
 }
 
 async function readStaticMarkers() {
-  const markers = new Map()
+  const byHashId = new Map()
   const data = JSON.parse(await readFile(STATIC_MARKERS_FILE, 'utf8'))
+  const locationNames = JSON.parse(await readFile(LOCATION_NAMES_FILE, 'utf8'))
+  const locations = []
 
   for (const [markerType, items] of Object.entries(data.markers ?? {})) {
     if (!Array.isArray(items)) {
@@ -150,18 +188,51 @@ async function readStaticMarkers() {
         continue
       }
 
-      markers.set(hashId, {
+      const marker = {
         markerType,
         icon: readString(item.Icon, ''),
         messageId: readString(item.MessageID, ''),
+        displayName: readString(locationNames[item.MessageID], ''),
         showLevel: readString(item.ShowLevel, ''),
         priority: readNumber(item.Priority),
         shrineInCave: Boolean(item.ShrineInCave),
-      })
+      }
+
+      byHashId.set(hashId, marker)
+
+      if (markerType === 'Location') {
+        locations.push(normalizeStaticLocationMarker(item, marker))
+      }
     }
   }
 
-  return markers
+  return { byHashId, locations }
+}
+
+function normalizeStaticLocationMarker(item, marker) {
+  const translate = isRecord(item.Translate) ? item.Translate : {}
+  const x = readNumber(translate.X)
+  const y = readNumber(translate.Y)
+  const z = readNumber(translate.Z)
+  const name = readString(item.MessageID, 'Unnamed location')
+  const layer = inferStaticLocationLayer(y)
+
+  return {
+    id: readString(item.hash_id, readString(item.SaveFlag, `static-location-${x}-${y}-${z}`)),
+    name,
+    ...(marker.displayName ? { displayName: marker.displayName } : {}),
+    actor: 'LocationMarker',
+    category: 'location',
+    layer,
+    x,
+    y,
+    z,
+    color: categoryColor('location'),
+    ...(marker.showLevel ? { showLevel: marker.showLevel } : {}),
+    ...(marker.priority ? { priority: marker.priority } : {}),
+    tags: ['location', layer, 'static-location', name].filter(Boolean),
+    note: 'Source: static map summary Location marker',
+  }
 }
 
 function normalizeRadarObject(value, query) {
@@ -204,6 +275,7 @@ function normalizeRadarObject(value, query) {
   return {
     id,
     name: formatObjectName(value, actor),
+    ...(staticMarker?.displayName ? { displayName: staticMarker.displayName } : {}),
     actor,
     category,
     layer,
@@ -450,6 +522,18 @@ function inferLayer(value) {
 
   if (mapName.includes('Sky') || fieldArea.startsWith('Sky') || y > 600) {
     return 'Sky'
+  }
+
+  return 'Surface'
+}
+
+function inferStaticLocationLayer(y) {
+  if (y >= 950) {
+    return 'Sky'
+  }
+
+  if (y <= -50) {
+    return 'Depths'
   }
 
   return 'Surface'
