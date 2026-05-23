@@ -29,6 +29,8 @@ export type MapObject = {
   actor: string
   category: ObjectCategory
   layer: MapLayer
+  // 同一个源站静态 marker 可能跨图层显示，例如 Chasm 同时显示在 Surface 和 Depths。
+  displayLayers?: MapLayer[]
   x: number
   y: number
   z: number
@@ -36,6 +38,8 @@ export type MapObject = {
   iconKey?: string
   showLevel?: string
   priority?: number
+  // 对象来源口径：static 用于源站 Filter 静态点位，raw 用于 radar 原始对象搜索。
+  sourceKind?: 'static' | 'raw'
   tags: string[]
   note: string
 }

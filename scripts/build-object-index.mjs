@@ -8,6 +8,9 @@ const STATIC_MARKERS_FILE = path.resolve(
 const LOCATION_NAMES_FILE = path.resolve(
   'public/data/objects/static/location-marker-names.json',
 )
+const DUNGEON_NAMES_FILE = path.resolve(
+  'public/data/objects/static/dungeon-names.json',
+)
 const OUT_FILE = path.resolve('public/data/objects/index.json')
 const CATEGORIES = [
   'location',
@@ -27,6 +30,26 @@ const CATEGORIES = [
   'enemy',
 ]
 const LAYERS = ['Sky', 'Surface', 'Depths']
+const STATIC_MARKER_TYPES = [
+  'Location',
+  'Dungeon',
+  'Place',
+  'Tower',
+  'Shop',
+  'Labo',
+  'Chasm',
+  'Cave',
+  'Korok',
+  'DragonTears',
+  'CheckPoint',
+  'Dispensers',
+]
+
+// 源站把这些编号的 Shrine 归到 Sky，其余 Dungeon marker 默认归到 Surface。
+const SKY_SHRINE_NUMBERS = new Set([
+  38, 105, 43, 151, 34, 149, 82, 128, 117, 148, 121, 145, 15, 55, 60, 62, 63,
+  61, 71, 109, 150, 127, 83, 93, 66, 146, 45, 50, 69, 110, 99, 52,
+])
 
 const rawFiles = await collectJsonFiles(RAW_ROOT)
 const staticMarkerData = await readStaticMarkers()
@@ -37,7 +60,7 @@ const stats = {
   rawRecords: 0,
   duplicateRecords: 0,
   invalidRecords: 0,
-  staticLocationRecords: 0,
+  staticMarkerRecords: 0,
   outputRecords: 0,
   categories: Object.fromEntries(CATEGORIES.map((category) => [category, 0])),
   layers: Object.fromEntries(LAYERS.map((layer) => [layer, 0])),
@@ -77,35 +100,48 @@ for (const file of rawFiles) {
   }
 }
 
-// radar 原始数据可能缺少少量静态地点；这里用源站 static.json 补齐，保证本地和远程 Locations 一致。
-for (const staticLocation of staticMarkerData.locations) {
-  if (objectsById.has(staticLocation.id)) {
-    const existing = objectsById.get(staticLocation.id)
+// 源站 Filter 面板使用 static.json 里的 marker 分组；本地索引也补齐这些静态点位。
+for (const staticMarker of staticMarkerData.markers) {
+  if (objectsById.has(staticMarker.id)) {
+    const existing = objectsById.get(staticMarker.id)
 
-    if (existing.category !== 'location') {
-      const locationCopy = {
-        ...staticLocation,
-        id: `${staticLocation.id}:location`,
+    if (existing.category !== staticMarker.category) {
+      const markerCopy = {
+        ...staticMarker,
+        id: `${staticMarker.id}:${staticMarker.category}`,
       }
 
-      objectsById.set(locationCopy.id, locationCopy)
-      stats.staticLocationRecords += 1
-      stats.categories.location += 1
-      stats.layers[locationCopy.layer] += 1
+      objectsById.set(markerCopy.id, markerCopy)
+      stats.staticMarkerRecords += 1
+      stats.categories[markerCopy.category] += 1
+      stats.layers[markerCopy.layer] += 1
       continue
     }
 
-    objectsById.set(staticLocation.id, {
+    objectsById.set(staticMarker.id, {
       ...existing,
-      displayName: staticLocation.displayName,
+      actor: staticMarker.actor,
+      layer: staticMarker.layer,
+      displayLayers: staticMarker.displayLayers,
+      x: staticMarker.x,
+      y: staticMarker.y,
+      z: staticMarker.z,
+      color: staticMarker.color,
+      displayName: staticMarker.displayName,
+      iconKey: staticMarker.iconKey,
+      showLevel: staticMarker.showLevel,
+      priority: staticMarker.priority,
+      sourceKind: 'static',
+      tags: unique([...existing.tags, ...staticMarker.tags]),
+      note: staticMarker.note,
     })
     continue
   }
 
-  objectsById.set(staticLocation.id, staticLocation)
-  stats.staticLocationRecords += 1
-  stats.categories.location += 1
-  stats.layers[staticLocation.layer] += 1
+  objectsById.set(staticMarker.id, staticMarker)
+  stats.staticMarkerRecords += 1
+  stats.categories[staticMarker.category] += 1
+  stats.layers[staticMarker.layer] += 1
 }
 
 const objects = [...objectsById.values()].sort((a, b) => {
@@ -174,10 +210,11 @@ async function readStaticMarkers() {
   const byHashId = new Map()
   const data = JSON.parse(await readFile(STATIC_MARKERS_FILE, 'utf8'))
   const locationNames = JSON.parse(await readFile(LOCATION_NAMES_FILE, 'utf8'))
-  const locations = []
+  const dungeonNames = JSON.parse(await readFile(DUNGEON_NAMES_FILE, 'utf8'))
+  const markers = []
 
   for (const [markerType, items] of Object.entries(data.markers ?? {})) {
-    if (!Array.isArray(items)) {
+    if (!Array.isArray(items) || !STATIC_MARKER_TYPES.includes(markerType)) {
       continue
     }
 
@@ -188,50 +225,71 @@ async function readStaticMarkers() {
         continue
       }
 
+      const messageId = readFirstString(item.MessageID, '')
       const marker = {
         markerType,
         icon: readString(item.Icon, ''),
-        messageId: readString(item.MessageID, ''),
-        displayName: readString(locationNames[item.MessageID], ''),
+        messageId,
+        displayName:
+          markerType === 'Dungeon'
+            ? readString(dungeonNames[messageId], '')
+            : readString(locationNames[messageId], readString(item.name, '')),
         showLevel: readString(item.ShowLevel, ''),
         priority: readNumber(item.Priority),
         shrineInCave: Boolean(item.ShrineInCave),
       }
 
       byHashId.set(hashId, marker)
+      const object = normalizeStaticMarker(item, marker)
 
-      if (markerType === 'Location') {
-        locations.push(normalizeStaticLocationMarker(item, marker))
+      if (object) {
+        markers.push(object)
       }
     }
   }
 
-  return { byHashId, locations }
+  return { byHashId, markers }
 }
 
-function normalizeStaticLocationMarker(item, marker) {
+function normalizeStaticMarker(item, marker) {
   const translate = isRecord(item.Translate) ? item.Translate : {}
   const x = readNumber(translate.X)
   const y = readNumber(translate.Y)
   const z = readNumber(translate.Z)
-  const name = readString(item.MessageID, 'Unnamed location')
-  const layer = inferStaticLocationLayer(y)
+  const name = readFirstString(item.MessageID, readString(item.name, marker.markerType))
+  const id = readString(
+    item.hash_id,
+    readString(item.id, `static-${marker.markerType}-${x}-${y}-${z}`),
+  )
+  const category = categoryForStaticMarker(marker.markerType)
+  const layer = inferStaticMarkerLayer(marker.markerType, item, y)
+  const displayLayers = inferStaticMarkerDisplayLayers(marker.markerType, item, y)
+  const iconKey = iconKeyForStaticMarker(marker)
+
+  if (!id || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+    return null
+  }
 
   return {
-    id: readString(item.hash_id, readString(item.SaveFlag, `static-location-${x}-${y}-${z}`)),
+    id,
     name,
     ...(marker.displayName ? { displayName: marker.displayName } : {}),
-    actor: 'LocationMarker',
-    category: 'location',
+    actor: staticMarkerActor(marker.markerType),
+    category,
     layer,
+    ...(displayLayers ? { displayLayers } : {}),
     x,
     y,
     z,
-    color: categoryColor('location'),
+    color: categoryColor(category),
+    ...(iconKey ? { iconKey } : {}),
     ...(marker.showLevel ? { showLevel: marker.showLevel } : {}),
     ...(marker.priority ? { priority: marker.priority } : {}),
-    tags: ['location', layer, 'static-location', name].filter(Boolean),
-    note: 'Source: static map summary Location marker',
+    sourceKind: 'static',
+    tags: [category, layer, `static-${marker.markerType}`, name, marker.displayName].filter(
+      Boolean,
+    ),
+    note: `Source: static map summary ${marker.markerType} marker`,
   }
 }
 
@@ -253,6 +311,11 @@ function normalizeRadarObject(value, query) {
 
   const staticMarker = staticMarkersByHashId.get(id)
   const category = inferCategory(value, query, staticMarker)
+
+  if (!staticMarker && category === 'location') {
+    return null
+  }
+
   const layer = inferLayer(value)
   const iconKey = iconKeyForObject(value, category, staticMarker)
   const mapType = readString(value.map_type, '')
@@ -286,6 +349,7 @@ function normalizeRadarObject(value, query) {
     ...(iconKey ? { iconKey } : {}),
     ...(staticMarker?.showLevel ? { showLevel: staticMarker.showLevel } : {}),
     ...(staticMarker?.priority ? { priority: staticMarker.priority } : {}),
+    sourceKind: staticMarker ? 'static' : 'raw',
     tags,
     note: objectNote(value, mapType, mapName),
   }
@@ -428,6 +492,10 @@ function inferCategory(value, query = '', staticMarker = null) {
     return 'place'
   }
 
+  if (staticMarker?.markerType === 'Location') {
+    return 'location'
+  }
+
   if (staticMarker?.markerType === 'Chasm') {
     return 'chasm'
   }
@@ -539,6 +607,99 @@ function inferStaticLocationLayer(y) {
   return 'Surface'
 }
 
+function categoryForStaticMarker(markerType) {
+  return {
+    Location: 'location',
+    Dungeon: 'shrine',
+    Place: 'place',
+    Tower: 'tower',
+    Shop: 'shop',
+    Labo: 'techLab',
+    Chasm: 'chasm',
+    Cave: 'cave',
+    Korok: 'korok',
+    DragonTears: 'dragonTear',
+    CheckPoint: 'lightroot',
+    Dispensers: 'dispenser',
+  }[markerType]
+}
+
+function inferStaticMarkerLayer(markerType, marker, y) {
+  const mapName = readString(marker.map_name, '')
+  const icon = readString(marker.Icon, '')
+
+  if (markerType === 'CheckPoint' || markerType === 'Chasm') {
+    return 'Depths'
+  }
+
+  if (markerType === 'Tower' || markerType === 'Labo' || markerType === 'DragonTears') {
+    return 'Surface'
+  }
+
+  if (markerType === 'Dungeon') {
+    return SKY_SHRINE_NUMBERS.has(readDungeonNumber(readFirstString(marker.MessageID, '')))
+      ? 'Sky'
+      : 'Surface'
+  }
+
+  if (markerType === 'Korok' || markerType === 'Dispensers') {
+    if (mapName.includes('Sky')) {
+      return 'Sky'
+    }
+
+    if (mapName.includes('Depths') || mapName.includes('Minus')) {
+      return 'Depths'
+    }
+
+    return 'Surface'
+  }
+
+  if (markerType === 'Cave' && icon === 'Chasm') {
+    return 'Depths'
+  }
+
+  return inferStaticLocationLayer(y)
+}
+
+function inferStaticMarkerDisplayLayers(markerType, marker, y) {
+  const icon = readString(marker.Icon, '')
+
+  if (markerType === 'Chasm' || (markerType === 'Cave' && icon === 'Chasm')) {
+    const layers = ['Depths']
+
+    if (y > -50 && y < 1000) {
+      layers.unshift('Surface')
+    }
+
+    return layers
+  }
+
+  return null
+}
+
+function readDungeonNumber(messageId) {
+  const match = messageId.match(/^Dungeon(\d+)/)
+
+  return match ? Number(match[1]) : -1
+}
+
+function staticMarkerActor(markerType) {
+  return {
+    Location: 'LocationMarker',
+    Dungeon: 'ShrineMarker',
+    Place: 'PlaceMarker',
+    Tower: 'TowerMarker',
+    Shop: 'ShopMarker',
+    Labo: 'TechLabMarker',
+    Chasm: 'ChasmMarker',
+    Cave: 'CaveMarker',
+    Korok: 'KorokMarker',
+    DragonTears: 'DragonTearsMarker',
+    CheckPoint: 'LightrootMarker',
+    Dispensers: 'DeviceDispenserMarker',
+  }[markerType]
+}
+
 function categoryColor(category) {
   return {
     location: '#8fd3a5',
@@ -565,6 +726,22 @@ function readNumber(value) {
 
 function readString(value, fallback) {
   return typeof value === 'string' && value.length > 0 ? value : fallback
+}
+
+function readFirstString(value, fallback) {
+  if (typeof value === 'string' && value.length > 0) {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === 'string' && item.length > 0)
+
+    if (first) {
+      return first
+    }
+  }
+
+  return fallback
 }
 
 function readStringArray(value) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Fuse from 'fuse.js'
 import L from 'leaflet'
 import {
@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
-import { REMOTE_STATIC_LOCATIONS_QUERY, loadObjects } from './services/objectData'
+import { REMOTE_STATIC_MARKERS_QUERY, loadObjects } from './services/objectData'
 import { useMapUiStore } from './stores/mapUiStore'
 import type { MapLayer, MapObject, ObjectDataSource, TileSource } from './types/map'
 import {
@@ -73,7 +73,16 @@ const tileAttributions: Record<TileSource, string> = {
   remote: 'Map tiles from zeldamods.org',
 }
 
-const DISPLAY_OBJECT_LIMIT = 1000
+const RESULT_LIST_LIMIT = 1000
+const MAP_RENDER_LIMIT = 3000
+
+// 地图当前视口的游戏坐标边界；Leaflet Simple CRS 中 lng 对应 x，lat 对应 z。
+type ViewportBounds = {
+  minX: number
+  maxX: number
+  minZ: number
+  maxZ: number
+}
 
 // 侧边栏分类按钮顺序，按原站 Filter 面板的主分类优先展示。
 const categoryOrder: Array<MapObject['category']> = [
@@ -132,8 +141,8 @@ const categoryIconAssets: Partial<Record<MapObject['category'], string>> = {
 const categoryLabels: Record<MapObject['category'], string> = {
   location: 'Locations',
   place: 'Places',
-  cave: 'Caves',
-  chasm: 'Chasms',
+  cave: 'Cave/Well',
+  chasm: 'Chasm',
   dragonTear: 'Dragon Tears',
   dispenser: 'Device Dispensers',
   korok: 'Koroks',
@@ -145,25 +154,6 @@ const categoryLabels: Record<MapObject['category'], string> = {
   chest: 'Chests',
   weapon: 'Weapons',
   enemy: 'Enemies',
-}
-
-// Remote 分类数据源配置；Locations 使用源站静态 marker 数据，其他分类继续走 radar API 查询词。
-const remoteCategoryQueries: Record<MapObject['category'], string> = {
-  location: REMOTE_STATIC_LOCATIONS_QUERY,
-  place: 'LocationMarker',
-  cave: 'Cave',
-  chasm: 'Chasm',
-  dragonTear: 'DragonTears',
-  dispenser: 'Dispenser',
-  korok: 'Korok',
-  shop: 'Shop',
-  lightroot: 'LightRoot',
-  techLab: 'Labo',
-  tower: 'Tower',
-  shrine: 'Shrine',
-  chest: 'TBox',
-  weapon: 'Weapon',
-  enemy: 'Enemy',
 }
 
 const categoryPreferredLayers: Partial<Record<MapObject['category'], MapLayer>> = {
@@ -214,6 +204,10 @@ function App() {
   const [objectsLoading, setObjectsLoading] = useState(false)
   const [objectsError, setObjectsError] = useState<string | null>(null)
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM)
+  const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null)
+  const handleViewportChange = useCallback((bounds: ViewportBounds) => {
+    setViewportBounds(bounds)
+  }, [])
   const selectedCategorySet = useMemo(
     () => new Set<MapObject['category']>(activeCategories),
     [activeCategories],
@@ -229,12 +223,8 @@ function App() {
       return [cleanQuery]
     }
 
-    const categoryQueries = [
-      ...new Set(activeCategories.map((category) => remoteCategoryQueries[category])),
-    ]
-
-    return categoryQueries.length > 0 ? categoryQueries : ['']
-  }, [activeCategories, objectSource, query])
+    return [REMOTE_STATIC_MARKERS_QUERY]
+  }, [objectSource, query])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -304,13 +294,25 @@ function App() {
   }, [fuse, objectSource, objects, query])
 
   const visibleObjects = useMemo(() => {
+    if (selectedCategorySet.size === 0) {
+      return []
+    }
+
     const usesLocationZoomFilter =
       selectedCategorySet.has('location') && query.trim().length === 0
+    const usesStaticFilterMarkers = query.trim().length === 0
 
     return searchedObjects.filter((object) => {
-      const matchesLayer = object.layer === activeLayer
-      const matchesCategory =
-        selectedCategorySet.size === 0 || selectedCategorySet.has(object.category)
+      const matchesLayer = objectMatchesLayer(object, activeLayer)
+      const matchesCategory = selectedCategorySet.has(object.category)
+
+      if (
+        usesStaticFilterMarkers &&
+        isSourceStaticFilterCategory(object.category) &&
+        object.sourceKind !== 'static'
+      ) {
+        return false
+      }
 
       if (
         usesLocationZoomFilter &&
@@ -330,9 +332,22 @@ function App() {
     selectedCategorySet,
   ])
 
-  const displayedObjects = useMemo(
-    () => visibleObjects.slice(0, DISPLAY_OBJECT_LIMIT),
+  const resultListObjects = useMemo(
+    () => visibleObjects.slice(0, RESULT_LIST_LIMIT),
     [visibleObjects],
+  )
+
+  const viewportObjects = useMemo(() => {
+    if (!viewportBounds) {
+      return []
+    }
+
+    return visibleObjects.filter((object) => isObjectInViewport(object, viewportBounds))
+  }, [viewportBounds, visibleObjects])
+
+  const mapObjects = useMemo(
+    () => viewportObjects.slice(0, MAP_RENDER_LIMIT),
+    [viewportObjects],
   )
 
   const selectedObject = useMemo(
@@ -436,9 +451,17 @@ function App() {
               const Icon = categoryIcons[category]
               const iconAsset = categoryIconAssets[category]
               const isSelected = selectedCategorySet.has(category)
-              const count = searchedObjects.filter(
-                (item) => item.layer === activeLayer && item.category === category,
-              ).length
+              const count = searchedObjects.filter((item) => {
+                if (!objectMatchesLayer(item, activeLayer) || item.category !== category) {
+                  return false
+                }
+
+                return (
+                  query.trim().length > 0 ||
+                  !isSourceStaticFilterCategory(category) ||
+                  item.sourceKind === 'static'
+                )
+              }).length
 
               return (
                 <button
@@ -485,12 +508,12 @@ function App() {
         <section className="results" aria-labelledby="results-heading">
           <h2 id="results-heading">
             {visibleObjects.length} visible
-            {visibleObjects.length > DISPLAY_OBJECT_LIMIT
-              ? ` · ${DISPLAY_OBJECT_LIMIT} shown`
+            {visibleObjects.length > RESULT_LIST_LIMIT
+              ? ` · ${RESULT_LIST_LIMIT} shown`
               : ''}
           </h2>
           <div className="result-list">
-            {displayedObjects.map((object) => (
+            {resultListObjects.map((object) => (
               <button
                 key={object.id}
                 type="button"
@@ -526,9 +549,12 @@ function App() {
             maxNativeZoom={MAX_NATIVE_ZOOM}
             attribution={tileAttributions[tileSource]}
           />
-          <MapZoomSync onZoomChange={setMapZoom} />
+          <MapViewportSync
+            onZoomChange={setMapZoom}
+            onViewportChange={handleViewportChange}
+          />
 
-          {displayedObjects.map((object) => (
+          {mapObjects.map((object) => (
             <ObjectMarker
               key={object.id}
               object={object}
@@ -545,8 +571,9 @@ function App() {
           <span>Zoom {mapZoom}</span>
           <span>{layerFolders[activeLayer]}</span>
           <span>{visibleObjects.length} objects</span>
-          {visibleObjects.length > displayedObjects.length ? (
-            <span>{displayedObjects.length} rendered</span>
+          <span>{viewportObjects.length} in view</span>
+          {viewportObjects.length > mapObjects.length ? (
+            <span>{mapObjects.length} rendered</span>
           ) : null}
         </div>
       </section>
@@ -590,15 +617,30 @@ function App() {
   )
 }
 
-// 监听 Leaflet 当前缩放层级，用于复刻源站按 ShowLevel 渐进显示地点名的规则。
-function MapZoomSync({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+// 监听 Leaflet 当前缩放层级和视口边界，用于地点分级显示与大数据量按需渲染。
+function MapViewportSync({
+  onZoomChange,
+  onViewportChange,
+}: {
+  onZoomChange: (zoom: number) => void
+  onViewportChange: (bounds: ViewportBounds) => void
+}) {
+  const syncMapState = useCallback(
+    (map: L.Map) => {
+      onZoomChange(map.getZoom())
+      onViewportChange(getPaddedViewportBounds(map))
+    },
+    [onViewportChange, onZoomChange],
+  )
+
   const map = useMapEvents({
-    zoomend: () => onZoomChange(map.getZoom()),
+    moveend: () => syncMapState(map),
+    zoomend: () => syncMapState(map),
   })
 
   useEffect(() => {
-    onZoomChange(map.getZoom())
-  }, [map, onZoomChange])
+    syncMapState(map)
+  }, [map, syncMapState])
 
   return null
 }
@@ -678,6 +720,47 @@ function dedupeObjects(objects: MapObject[]) {
   }
 
   return [...objectsById.values()]
+}
+
+function getPaddedViewportBounds(map: L.Map): ViewportBounds {
+  const bounds = map.getBounds().pad(0.35)
+
+  return {
+    minX: bounds.getWest(),
+    maxX: bounds.getEast(),
+    minZ: bounds.getSouth(),
+    maxZ: bounds.getNorth(),
+  }
+}
+
+function isObjectInViewport(object: MapObject, bounds: ViewportBounds) {
+  return (
+    object.x >= bounds.minX &&
+    object.x <= bounds.maxX &&
+    object.z >= bounds.minZ &&
+    object.z <= bounds.maxZ
+  )
+}
+
+function objectMatchesLayer(object: MapObject, activeLayer: MapLayer) {
+  return object.displayLayers?.includes(activeLayer) ?? object.layer === activeLayer
+}
+
+function isSourceStaticFilterCategory(category: MapObject['category']) {
+  return (
+    category === 'location' ||
+    category === 'place' ||
+    category === 'cave' ||
+    category === 'chasm' ||
+    category === 'dragonTear' ||
+    category === 'dispenser' ||
+    category === 'korok' ||
+    category === 'shop' ||
+    category === 'lightroot' ||
+    category === 'techLab' ||
+    category === 'tower' ||
+    category === 'shrine'
+  )
 }
 
 function getLocationLabelIcon(object: MapObject) {
@@ -821,12 +904,8 @@ function getObjectStatusText({
     return 'Loading object data...'
   }
 
-  if (
-    objectSource === 'remote' &&
-    activeCategories.length === 0 &&
-    query.trim().length < 2
-  ) {
-    return 'Enter a search term or choose categories to query radar API.'
+  if (objectSource === 'remote' && activeCategories.length === 0 && query.trim().length < 2) {
+    return 'Static markers loaded. Choose categories to show points.'
   }
 
   return `${objectCount} ${objectSource === 'local' ? 'local objects' : 'remote results'}`

@@ -20,7 +20,7 @@ type MapUiState = {
   selectObject: (objectId: string | null) => void
 }
 
-// 空的 activeCategories 表示显示当前图层的全部对象；非空时按多选分类过滤。
+// 空的 activeCategories 表示不显示任何点位；用户勾选一个或多个分类后才渲染对应对象。
 export const useMapUiStore = create<MapUiState>((set) => ({
   activeLayer: 'Surface',
   tileSource: 'remote',
