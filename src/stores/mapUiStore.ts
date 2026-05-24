@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { MapLayer, MapObject, ObjectDataSource, TileSource } from '../types/map'
+import type {
+  MapAreaId,
+  MapLayer,
+  MapObject,
+  ObjectDataSource,
+  TileSource,
+} from '../types/map'
 
 export type ActiveObjectCategory = MapObject['category']
 
@@ -8,12 +14,21 @@ type MapUiState = {
   activeLayer: MapLayer
   tileSource: TileSource
   objectSource: ObjectDataSource
+  // 当前启用的 Visible map areas 图层；none 表示不绘制任何区域覆盖层。
+  activeMapArea: MapAreaId
+  // 区域编号过滤输入，兼容源站的 “1,2,3,64” 写法。
+  mapAreaFilter: string
+  // 是否填充区域面；关闭后只显示边界线，便于查看底图细节。
+  mapAreaFill: boolean
   activeCategories: ActiveObjectCategory[]
   query: string
   selectedObjectId: string | null
   setActiveLayer: (layer: MapLayer) => void
   setTileSource: (source: TileSource) => void
   setObjectSource: (source: ObjectDataSource) => void
+  setActiveMapArea: (mapArea: MapAreaId) => void
+  setMapAreaFilter: (filter: string) => void
+  setMapAreaFill: (shouldFill: boolean) => void
   toggleCategory: (category: ActiveObjectCategory, preferredLayer?: MapLayer) => void
   clearCategories: () => void
   setQuery: (query: string) => void
@@ -25,6 +40,9 @@ export const useMapUiStore = create<MapUiState>((set) => ({
   activeLayer: 'Surface',
   tileSource: 'remote',
   objectSource: 'local',
+  activeMapArea: 'none',
+  mapAreaFilter: '',
+  mapAreaFill: true,
   activeCategories: [],
   query: '',
   selectedObjectId: null,
@@ -41,6 +59,18 @@ export const useMapUiStore = create<MapUiState>((set) => ({
     set({
       objectSource: source,
       selectedObjectId: null,
+    }),
+  setActiveMapArea: (mapArea) =>
+    set({
+      activeMapArea: mapArea,
+    }),
+  setMapAreaFilter: (filter) =>
+    set({
+      mapAreaFilter: filter,
+    }),
+  setMapAreaFill: (shouldFill) =>
+    set({
+      mapAreaFill: shouldFill,
     }),
   toggleCategory: (category, preferredLayer) =>
     set((state) => {

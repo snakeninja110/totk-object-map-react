@@ -13,12 +13,24 @@ public/data/
     Ground/maptex/{z}/{x}/{y}.webp
     Sky/maptex/{z}/{x}/{y}.webp
     Depths/maptex/{z}/{x}/{y}.webp
+  map-areas/
+    MapTower.json
+    Ground.json
+    MinusField.json
+    Cave.json
+    Sky.json
+    sky_polys.json
+    cave_polys.json
+    cave_polys_detail.json
+    cherry_blossom_trees.json
   objects/
     raw/
       MainAndMinusField/_all/{query}.json
       manifest.json
-    MainField/A-1.json
-    MainField/A-2.json
+    static/
+      mainfield-static.json
+      location-marker-names.json
+      dungeon-names.json
     index.json
   details/
     {objectId}.json
@@ -45,15 +57,37 @@ npm run verify:tiles
 The app can switch between local cached tiles and remote zeldamods tiles from the
 sidebar. Missing local tiles do not automatically fall back to remote tiles.
 
+Visible map areas are stored in:
+
+```text
+public/data/map-areas/
+```
+
+These files are copied from the source site's `game_files/ecosystem` data and
+are used by the sidebar's `Visible map areas` controls. The frontend normalizes
+FeatureCollection, Feature arrays, and grouped MapTower data into Polygon /
+MultiPolygon overlays.
+
 The app reads local object markers from:
 
 ```text
 public/data/objects/index.json
 ```
 
-The sidebar can switch object data between local JSON and the remote radar API.
-Remote API mode requires a search query and does not affect the tile source
-switch.
+`objects/index.json` is generated from two sources:
+
+- `objects/raw`: radar API cache for local search and non-static object results.
+- `objects/static`: zeldamods static map marker files used to match the source
+  site's Filter panel.
+
+The sidebar can switch object data between local JSON and remote data. This
+switch is independent from the tile source switch.
+
+Remote object mode has two paths:
+
+- Without a search query, the app loads the source site's static marker summary
+  once and filters categories locally.
+- With a search query, the app calls the radar API for search results.
 
 Fetch raw radar API object results:
 
@@ -78,3 +112,11 @@ Verify the generated object index:
 ```bash
 npm run verify:objects
 ```
+
+Current index notes:
+
+- Static marker categories are used for the main Filter panel.
+- `Chasm` follows the source site behavior: most chasms render on both Surface
+  and Depths, while `Hyrule Castle Chasm` only renders on Depths.
+- `Cave/Well` is one category, but each marker keeps the source `Icon` value so
+  cave entrances and wells use different icons.

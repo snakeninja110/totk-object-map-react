@@ -2,7 +2,7 @@
 
 这是一个用 React 复刻《塞尔达传说：王国之泪》对象地图的个人项目原型。目标是做成一个可离线运行的交互式地图工具，用于查看地图底图、对象点位、分类筛选、搜索和详情信息。
 
-当前版本还不是完整复刻版，已经完成本地 / 远程瓦片切换、本地对象索引、分类筛选、Fuse.js 搜索和原站部分图标复刻。离线瓦片体积较大，不提交到 Git，需要在本地按下面步骤抓取。
+当前版本还不是完整复刻版，已经完成本地 / 远程瓦片切换、本地对象索引、分类筛选、Fuse.js 搜索、源站静态 marker 分类、原站部分图标复刻、结果列表虚拟滚动、Visible map areas 区域覆盖层，以及页面结构拆分。离线瓦片体积较大，不提交到 Git，需要在本地按下面步骤抓取。
 
 ## 技术栈
 
@@ -11,7 +11,7 @@
 - Vite：开发服务器和构建工具
 - Leaflet：地图渲染核心
 - React Leaflet：React 里的 Leaflet 组件封装
-- Zustand：预留给后续全局状态管理
+- Zustand：全局 UI 状态管理
 - Fuse.js：本地模糊搜索
 - Lucide React：界面图标
 - ESLint：代码检查
@@ -22,8 +22,11 @@
 - 地图瓦片加载：支持本地静态瓦片和 zeldamods 远程瓦片切换
 - TotK 坐标校准：地图使用原始 `x=-6000..6000`、`z=-5000..5000` 边界和 `24000 x 20000` 原图尺寸
 - 对象点位渲染：支持本地对象索引和远程 radar API
+- 源站静态 marker：支持 `Locations`、`Places`、`Shrines`、`Towers`、`Chasm`、`Cave/Well`、`Koroks`、`Dragon Tears` 等分类
 - 左侧工具栏：搜索、图层切换、分类筛选、点位列表
 - Filter 侧边栏：按原站风格展示两列分类按钮，并支持多选分类标签
+- Visible map areas：支持地图塔区域、地面 / 地底 / 天空 Field Map Areas、天空 / 洞穴区域和樱花树区域覆盖层
+- 结果列表：使用虚拟滚动渲染，避免大量结果一次性生成 DOM
 - 右侧详情栏：展示选中对象的 Actor、图层、坐标、标签和备注
 - 静态数据目录规划：`public/data/README.md`
 - 数据抓取脚本初稿：
@@ -97,7 +100,50 @@ npm run verify:tiles
 
 使用这些数据前请确认 zeldamods 站点许可证、数据授权、请求频率和再分发限制。
 
-## 静态数据规划
+## 对象数据与远程模式
+
+对象点位和底图瓦片是两套独立数据源：
+
+- `Tile source`：控制地图底图，支持 `Local` / `Remote`
+- `Object data`：控制点位数据，支持 `Local Data` / `Remote API`
+
+本地对象点位入口：
+
+```text
+public/data/objects/index.json
+```
+
+当前本地对象索引由两类数据合成：
+
+- `raw radar cache`：来自 `public/data/objects/raw`，用于本地搜索和普通对象展示
+- `static markers`：来自 `public/data/objects/static/mainfield-static.json`，用于复刻源站 Filter 主分类
+
+当前本地索引状态：
+
+- raw 对象记录：`51573`
+- 前端对象索引：`43578`
+- 静态 marker 分类包含：
+  - `location`: 890
+  - `place`: 33
+  - `cave`: 255
+  - `chasm`: 36
+  - `dragonTear`: 12
+  - `dispenser`: 30
+  - `korok`: 900
+  - `shop`: 46
+  - `lightroot`: 120
+  - `techLab`: 2
+  - `tower`: 15
+  - `shrine`: 152
+
+远程对象模式有两种行为：
+
+- 无搜索词时：一次性加载源站 `map_summary/MainField/static.json`，分类点击只做前端筛选，行为对齐源站 Filter 面板
+- 有搜索词时：使用 radar API 查询搜索结果
+
+注意：本地搜索使用 Fuse.js；远程搜索仍受 radar API 返回限制影响。
+
+## 数据目录规划
 
 推荐把离线资源放在：
 
@@ -107,23 +153,28 @@ public/data/
     Ground/maptex/{z}/{x}/{y}.webp
     Sky/maptex/{z}/{x}/{y}.webp
     Depths/maptex/{z}/{x}/{y}.webp
+  map-areas/                   # 源站 Visible map areas 区域覆盖层数据
+    MapTower.json
+    Ground.json
+    MinusField.json
+    Cave.json
+    Sky.json
+    sky_polys.json
+    cave_polys.json
+    cave_polys_detail.json
+    cherry_blossom_trees.json
   objects/
-    MainField/A-1.json
-    MainField/A-2.json
-    index.json
+    raw/                       # radar API 原始缓存
+      MainAndMinusField/_all/{query}.json
+      manifest.json
+    static/                    # 源站静态 marker 和文本名
+      mainfield-static.json
+      location-marker-names.json
+      dungeon-names.json
+    index.json                 # 前端直接读取的标准化对象索引
   details/
     {objectId}.json
 ```
-
-当前应用支持从 `public/data/map` 读取本地瓦片，也可以在界面中切回远程瓦片。对象点位支持从 `public/data/objects/index.json` 读取本地 JSON，也可以在界面中切换到 radar API 搜索模式。
-
-本地对象点位入口：
-
-```text
-public/data/objects/index.json
-```
-
-远程对象模式使用 radar API 搜索。切到 `Remote API` 后，需要在搜索框输入至少 2 个字符才会发起查询；瓦片来源和对象数据来源互相独立。
 
 抓取 radar API 原始对象数据：
 
@@ -154,6 +205,32 @@ npm run build:objects
 npm run verify:objects
 ```
 
+## 前端结构
+
+当前页面已从单文件 `App.tsx` 拆分为几类模块：
+
+```text
+src/
+  App.tsx                         # 页面编排层，连接 store、hooks 和组件
+  components/
+    FilterSidebar.tsx             # 左侧筛选栏
+    VirtualResultList.tsx         # 结果列表虚拟滚动
+    TotkMap.tsx                   # Leaflet 地图、瓦片、marker 和视口同步
+    MapAreaOverlay.tsx            # Visible map areas 区域覆盖层
+    ObjectDetails.tsx             # 右侧对象详情
+  constants/
+    mapConfig.ts                  # 分类、瓦片、图标、侧栏配置
+  hooks/
+    useObjectData.ts              # 对象数据加载
+    useVisibleObjects.ts          # 搜索、分类、图层、视口和渲染上限
+    useMapAreas.ts                # 区域覆盖层数据加载和格式归一化
+  utils/
+    locationLabels.ts             # Locations 文本标签和 ShowLevel 规则
+    objectFilters.ts              # 图层匹配、静态分类、视口过滤
+```
+
+新增对象、类和关键业务规则应写中文功能型注释。尤其是源站行为复刻规则，例如 `Chasm` 同时显示在 `Surface` 和 `Depths`、`Locations` 按 `ShowLevel` 随缩放逐步显示。
+
 ## TODO
 
 - [x] 初始化 Git 仓库，建立基础提交记录
@@ -169,8 +246,13 @@ npm run verify:objects
 - [x] 加入 Fuse.js 搜索，支持名称、Actor、标签和分类搜索
 - [x] 加入 Zustand 状态管理，统一维护图层、数据源、筛选、搜索和选中对象状态
 - [x] 调整 Filter 侧边栏样式，并支持多选分类标签
+- [x] 接入源站静态 marker，统一本地 / 远程分类筛选口径
+- [x] 拆分 `App.tsx`，抽出配置、工具函数、hooks 和页面组件
+- [x] 给结果列表接入虚拟滚动，避免大量 DOM 节点拖慢侧边栏
+- [x] 把 `Visible map areas` 接入真实区域图层数据
 - [ ] 加入 IndexedDB 或本地存储，保存已完成、收藏和自定义标记
 - [ ] 加入点位聚合或 Canvas 渲染，优化大量点位性能
+- [ ] 为核心筛选规则补充单元测试或交互测试
 - [ ] 增加对象详情页字段：掉落物、宝箱内容、地图单元、原始参数
 - [ ] 增加导入 / 导出 JSON 功能
 - [ ] 增加移动端布局优化

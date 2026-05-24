@@ -14,12 +14,18 @@ function App() {
   const activeLayer = useMapUiStore((state) => state.activeLayer)
   const tileSource = useMapUiStore((state) => state.tileSource)
   const objectSource = useMapUiStore((state) => state.objectSource)
+  const activeMapArea = useMapUiStore((state) => state.activeMapArea)
+  const mapAreaFilter = useMapUiStore((state) => state.mapAreaFilter)
+  const mapAreaFill = useMapUiStore((state) => state.mapAreaFill)
   const activeCategories = useMapUiStore((state) => state.activeCategories)
   const query = useMapUiStore((state) => state.query)
   const selectedObjectId = useMapUiStore((state) => state.selectedObjectId)
   const setActiveLayer = useMapUiStore((state) => state.setActiveLayer)
   const setTileSource = useMapUiStore((state) => state.setTileSource)
   const setObjectSource = useMapUiStore((state) => state.setObjectSource)
+  const setActiveMapArea = useMapUiStore((state) => state.setActiveMapArea)
+  const setMapAreaFilter = useMapUiStore((state) => state.setMapAreaFilter)
+  const setMapAreaFill = useMapUiStore((state) => state.setMapAreaFill)
   const toggleCategory = useMapUiStore((state) => state.toggleCategory)
   const clearCategories = useMapUiStore((state) => state.clearCategories)
   const setQuery = useMapUiStore((state) => state.setQuery)
@@ -65,6 +71,9 @@ function App() {
         query={query}
         objectsError={objectsError}
         objectStatusText={objectStatusText}
+        activeMapArea={activeMapArea}
+        mapAreaFilter={mapAreaFilter}
+        mapAreaFill={mapAreaFill}
         selectedCategorySet={selectedCategorySet}
         categoryCounts={categoryCounts}
         visibleObjects={visibleObjects}
@@ -76,6 +85,9 @@ function App() {
         toggleCategory={toggleCategory}
         clearCategories={clearCategories}
         setQuery={setQuery}
+        setActiveMapArea={setActiveMapArea}
+        setMapAreaFilter={setMapAreaFilter}
+        setMapAreaFill={setMapAreaFill}
         selectObject={selectObject}
       />
 
@@ -84,6 +96,9 @@ function App() {
         tileSource={tileSource}
         objectSource={objectSource}
         mapZoom={mapZoom}
+        activeMapArea={activeMapArea}
+        mapAreaFilter={mapAreaFilter}
+        mapAreaFill={mapAreaFill}
         visibleObjects={visibleObjects}
         viewportObjects={viewportObjects}
         mapObjects={mapObjects}

@@ -4,6 +4,27 @@ export type TileSource = 'local' | 'remote'
 
 export type ObjectDataSource = 'local' | 'remote'
 
+export type MapAreaId =
+  | 'none'
+  | 'mapTower'
+  | 'surfaceField'
+  | 'depthsField'
+  | 'caveField'
+  | 'skyField'
+  | 'skyRegions'
+  | 'caveRegions'
+  | 'caveRegionsDetail'
+  | 'cherryBlossomTrees'
+
+export type MapAreaOption = {
+  id: MapAreaId
+  label: string
+  // 对应 public/data/map-areas 下的源站区域文件；none 不需要加载数据。
+  fileName: string | null
+  // 区域图层的默认描边颜色；源文件没有 style.color 时使用这个颜色。
+  color: string
+}
+
 export type ObjectCategory =
   | 'location'
   | 'place'

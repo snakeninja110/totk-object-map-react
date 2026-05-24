@@ -14,9 +14,8 @@ import {
   Waypoints,
   type LucideIcon,
 } from 'lucide-react'
-import type { MapLayer, MapObject, TileSource } from '../types/map'
+import type { MapAreaOption, MapLayer, MapObject, TileSource } from '../types/map'
 
-export const RESULT_LIST_LIMIT = 1000
 export const MAP_RENDER_LIMIT = 3000
 
 // Leaflet 瓦片目录和游戏图层的映射；Surface 在源站文件目录中叫 Ground。
@@ -124,16 +123,66 @@ export const categoryPreferredLayers: Partial<Record<MapObject['category'], MapL
   lightroot: 'Depths',
 }
 
-// 先按原站侧栏展示地图区域入口；当前仅提供界面占位，后续再接入区域图层数据。
-export const mapAreaOptions = [
-  'None',
-  'Map Tower Areas',
-  'Surface Field Map Areas',
-  'Depths Field Map Areas',
-  'Cave Field Map Areas',
-  'Sky Field Map Areas',
-  'Sky Regions (approximate)',
-  'Cave Regions (approximate)',
-  'Cave Regions (detailed)',
-  'Cherry Blossom Trees',
+// 源站 Visible map areas 对应的区域数据入口；文件统一放在 public/data/map-areas。
+export const mapAreaOptions: MapAreaOption[] = [
+  {
+    id: 'none',
+    label: 'None',
+    fileName: null,
+    color: '#3388ff',
+  },
+  {
+    id: 'mapTower',
+    label: 'Map Tower Areas',
+    fileName: 'MapTower.json',
+    color: '#46a6ff',
+  },
+  {
+    id: 'surfaceField',
+    label: 'Surface Field Map Areas',
+    fileName: 'Ground.json',
+    color: '#46a6ff',
+  },
+  {
+    id: 'depthsField',
+    label: 'Depths Field Map Areas',
+    fileName: 'MinusField.json',
+    color: '#9b7cff',
+  },
+  {
+    id: 'caveField',
+    label: 'Cave Field Map Areas',
+    fileName: 'Cave.json',
+    color: '#f3b84a',
+  },
+  {
+    id: 'skyField',
+    label: 'Sky Field Map Areas',
+    fileName: 'Sky.json',
+    color: '#5fd3ff',
+  },
+  {
+    id: 'skyRegions',
+    label: 'Sky Regions (approximate)',
+    fileName: 'sky_polys.json',
+    color: '#70d6ff',
+  },
+  {
+    id: 'caveRegions',
+    label: 'Cave Regions (approximate)',
+    fileName: 'cave_polys.json',
+    color: '#f0c15f',
+  },
+  {
+    id: 'caveRegionsDetail',
+    label: 'Cave Regions (detailed)',
+    fileName: 'cave_polys_detail.json',
+    color: '#f3e79b',
+  },
+  {
+    id: 'cherryBlossomTrees',
+    label: 'Cherry Blossom Trees',
+    fileName: 'cherry_blossom_trees.json',
+    color: '#ff8db7',
+  },
 ]

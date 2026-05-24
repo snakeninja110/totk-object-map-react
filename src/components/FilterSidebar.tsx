@@ -8,7 +8,6 @@ import {
   Waypoints,
 } from 'lucide-react'
 import {
-  RESULT_LIST_LIMIT,
   categoryIconAssets,
   categoryIcons,
   categoryLabels,
@@ -16,8 +15,8 @@ import {
   categoryPreferredLayers,
   mapAreaOptions,
 } from '../constants/mapConfig'
-import type { MapLayer, MapObject, ObjectDataSource, TileSource } from '../types/map'
-import { getObjectDisplayName } from '../utils/locationLabels'
+import type { MapAreaId, MapLayer, MapObject, ObjectDataSource, TileSource } from '../types/map'
+import { VirtualResultList } from './VirtualResultList'
 
 type FilterSidebarProps = {
   // 当前地图层；控制 Layer 分段按钮的选中状态。
@@ -32,13 +31,19 @@ type FilterSidebarProps = {
   objectsError: string | null
   // 对象数据加载状态文案；统一由 useObjectData 根据来源、搜索词和错误生成。
   objectStatusText: string
+  // 当前启用的区域覆盖层；控制 Visible map areas 单选项，并驱动地图覆盖层加载。
+  activeMapArea: MapAreaId
+  // 区域编号过滤输入；兼容源站按编号筛选区域的交互。
+  mapAreaFilter: string
+  // 是否填充区域覆盖层；关闭后地图只显示区域边界线。
+  mapAreaFill: boolean
   // 当前已选分类集合；用于高亮分类按钮，并决定地图上实际显示哪些对象。
   selectedCategorySet: Set<MapObject['category']>
   // 每个分类在当前图层和当前搜索条件下的计数；用于分类按钮右侧数字。
   categoryCounts: Record<MapObject['category'], number>
   // 已通过图层、分类、搜索和源站规则筛选的对象；用于显示结果总数。
   visibleObjects: MapObject[]
-  // 侧边栏结果列表实际渲染的对象；通常是 visibleObjects 的截断结果。
+  // 侧边栏结果列表的数据源；实际 DOM 数量由 VirtualResultList 按滚动位置控制。
   resultListObjects: MapObject[]
   // 当前详情面板选中的对象；用于在结果列表中高亮对应项。
   selectedObject: MapObject | null
@@ -54,6 +59,12 @@ type FilterSidebarProps = {
   clearCategories: () => void
   // 更新搜索词；Local 模式走 Fuse，本地无搜索词时按源站静态分类规则展示。
   setQuery: (query: string) => void
+  // 切换区域覆盖层；None 会清空地图区域渲染。
+  setActiveMapArea: (mapArea: MapAreaId) => void
+  // 更新区域编号过滤词；输入为空时显示当前区域图层的全部区域。
+  setMapAreaFilter: (filter: string) => void
+  // 切换区域填充状态；用于在强调范围和查看底图细节之间切换。
+  setMapAreaFill: (shouldFill: boolean) => void
   // 选中对象并驱动右侧详情面板更新。
   selectObject: (id: string) => void
 }
@@ -67,6 +78,9 @@ export function FilterSidebar({
   query,
   objectsError,
   objectStatusText,
+  activeMapArea,
+  mapAreaFilter,
+  mapAreaFill,
   selectedCategorySet,
   categoryCounts,
   visibleObjects,
@@ -78,6 +92,9 @@ export function FilterSidebar({
   toggleCategory,
   clearCategories,
   setQuery,
+  setActiveMapArea,
+  setMapAreaFilter,
+  setMapAreaFill,
   selectObject,
 }: FilterSidebarProps) {
   return (
@@ -189,47 +206,47 @@ export function FilterSidebar({
 
         <section className="map-area-panel" aria-labelledby="map-area-heading">
           <h2 id="map-area-heading">Visible map areas</h2>
-          {mapAreaOptions.map((item, index) => (
-            <label key={item} className="map-area-option">
-              <input type="radio" name="map-area" defaultChecked={index === 0} />
-              <span>{item}</span>
+          {mapAreaOptions.map((item) => (
+            <label key={item.id} className="map-area-option">
+              <input
+                type="radio"
+                name="map-area"
+                checked={activeMapArea === item.id}
+                onChange={() => setActiveMapArea(item.id)}
+              />
+              <span>{item.label}</span>
             </label>
           ))}
           <label className="map-area-filter">
             <span>Filter map areas</span>
             <div>
-              <input placeholder="Example: 1,2,3,64" />
+              <input
+                value={mapAreaFilter}
+                onChange={(event) => setMapAreaFilter(event.target.value)}
+                placeholder="Example: 1,2,3,64"
+              />
               <button type="button" aria-label="Apply map area filter">
                 <Funnel size={22} />
               </button>
             </div>
           </label>
           <label className="map-area-fill">
-            <input type="checkbox" defaultChecked />
+            <input
+              type="checkbox"
+              checked={mapAreaFill}
+              onChange={(event) => setMapAreaFill(event.target.checked)}
+            />
             <span>Fill map areas with color</span>
           </label>
         </section>
 
         <section className="results" aria-labelledby="results-heading">
-          <h2 id="results-heading">
-            {visibleObjects.length} visible
-            {visibleObjects.length > RESULT_LIST_LIMIT
-              ? ` · ${RESULT_LIST_LIMIT} shown`
-              : ''}
-          </h2>
-          <div className="result-list">
-            {resultListObjects.map((object) => (
-              <button
-                key={object.id}
-                type="button"
-                className={selectedObject?.id === object.id ? 'active' : ''}
-                onClick={() => selectObject(object.id)}
-              >
-                <span>{getObjectDisplayName(object)}</span>
-                <small>{object.actor}</small>
-              </button>
-            ))}
-          </div>
+          <h2 id="results-heading">{visibleObjects.length} visible</h2>
+          <VirtualResultList
+            objects={resultListObjects}
+            selectedObjectId={selectedObject?.id ?? null}
+            onSelect={selectObject}
+          />
         </section>
       </div>
     </aside>

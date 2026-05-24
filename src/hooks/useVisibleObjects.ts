@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import Fuse from 'fuse.js'
 import {
   MAP_RENDER_LIMIT,
-  RESULT_LIST_LIMIT,
   categoryOrder,
 } from '../constants/mapConfig'
 import type { MapLayer, MapObject, ObjectDataSource } from '../types/map'
@@ -100,10 +99,7 @@ export function useVisibleObjects({
     })
   }, [activeLayer, mapZoom, query, searchedObjects, selectedCategorySet])
 
-  const resultListObjects = useMemo(
-    () => visibleObjects.slice(0, RESULT_LIST_LIMIT),
-    [visibleObjects],
-  )
+  const resultListObjects = visibleObjects
 
   const viewportObjects = useMemo(() => {
     if (!viewportBounds) {

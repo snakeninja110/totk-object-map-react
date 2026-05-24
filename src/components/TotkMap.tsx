@@ -13,7 +13,14 @@ import {
   tileAttributions,
   tileLayers,
 } from '../constants/mapConfig'
-import type { MapLayer, MapObject, ObjectDataSource, TileSource } from '../types/map'
+import { useMapAreas } from '../hooks/useMapAreas'
+import type {
+  MapAreaId,
+  MapLayer,
+  MapObject,
+  ObjectDataSource,
+  TileSource,
+} from '../types/map'
 import {
   DEFAULT_ZOOM,
   MAX_NATIVE_ZOOM,
@@ -29,6 +36,7 @@ import {
 } from '../utils/locationLabels'
 import { getObjectIcon } from '../utils/objectIcons'
 import type { ViewportBounds } from '../utils/objectFilters'
+import { MapAreaOverlay } from './MapAreaOverlay'
 
 type TotkMapProps = {
   // 当前地图层；决定底图瓦片目录、底部工具条图层名和 marker 所属渲染上下文。
@@ -39,6 +47,12 @@ type TotkMapProps = {
   objectSource: ObjectDataSource
   // 当前 Leaflet 缩放层级；由 MapViewportSync 写回，用于底部工具条展示。
   mapZoom: number
+  // 当前启用的地图区域覆盖层；none 时不加载区域数据。
+  activeMapArea: MapAreaId
+  // 区域编号过滤输入；用于只显示指定编号或 Area 值的区域。
+  mapAreaFilter: string
+  // 是否填充地图区域；关闭时只绘制边界线。
+  mapAreaFill: boolean
   // 已通过搜索、分类、图层和源站规则筛选的对象；用于展示总对象数。
   visibleObjects: MapObject[]
   // visibleObjects 中落在当前视口范围内的对象；用于展示视口内数量。
@@ -62,6 +76,9 @@ export function TotkMap({
   tileSource,
   objectSource,
   mapZoom,
+  activeMapArea,
+  mapAreaFilter,
+  mapAreaFill,
   visibleObjects,
   viewportObjects,
   mapObjects,
@@ -70,6 +87,12 @@ export function TotkMap({
   onViewportChange,
   selectObject,
 }: TotkMapProps) {
+  const { features: mapAreaFeatures, error: mapAreaError } = useMapAreas({
+    activeMapArea,
+    activeLayer,
+    filterText: mapAreaFilter,
+  })
+
   return (
     <section className="map-stage" aria-label="Interactive map">
       <MapContainer
@@ -92,6 +115,7 @@ export function TotkMap({
           attribution={tileAttributions[tileSource]}
         />
         <MapViewportSync onZoomChange={setMapZoom} onViewportChange={onViewportChange} />
+        <MapAreaOverlay features={mapAreaFeatures} fillAreas={mapAreaFill} />
 
         {mapObjects.map((object) => (
           <ObjectMarker
@@ -111,6 +135,11 @@ export function TotkMap({
         <span>{layerFolders[activeLayer]}</span>
         <span>{visibleObjects.length} objects</span>
         <span>{viewportObjects.length} in view</span>
+        {activeMapArea !== 'none' ? (
+          <span>
+            {mapAreaError ? 'Area load failed' : `${mapAreaFeatures.length} areas`}
+          </span>
+        ) : null}
         {viewportObjects.length > mapObjects.length ? (
           <span>{mapObjects.length} rendered</span>
         ) : null}
