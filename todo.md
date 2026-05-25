@@ -74,6 +74,7 @@ npm run verify:tiles
 npm run fetch:map-unit
 npm run build:objects
 npm run verify:objects
+npm run test
 npm run lint
 npm run build
 ```
@@ -96,13 +97,14 @@ npm run build
 0.2 页面结构拆分
    - 已完成：`App.tsx` 降为页面编排层，当前主要连接 store、hooks 和三个页面区域。
    - 已完成：`FilterSidebar.tsx` 负责左侧筛选栏。
-   - 已完成：`TotkMap.tsx` 负责 Leaflet 地图、瓦片、marker 和视口同步。
+   - 已完成：`TotkMap.tsx` 负责 Leaflet 地图、瓦片、区域覆盖层、marker 和底部状态条的组合。
+   - 已完成：`MapViewportSync.tsx` 负责 Leaflet 缩放和视口边界同步。
+   - 已完成：`ObjectMarker.tsx` 负责单个对象 marker、图标选择和 popup。
    - 已完成：`ObjectDetails.tsx` 负责右侧对象详情。
    - 已完成：`mapConfig.ts` 负责瓦片、分类、图标和侧栏固定配置。
    - 已完成：`useObjectData.ts` 负责对象数据加载。
    - 已完成：`useVisibleObjects.ts` 负责搜索、分类、图层、视口和渲染上限。
-   - 已完成：`locationLabels.ts` 和 `objectFilters.ts` 负责源站地名标签和筛选纯函数。
-   - 后续如继续拆分，可把 `TotkMap.tsx` 内的 `ObjectMarker` 和 `MapViewportSync` 拆成独立组件。
+   - 已完成：`locationLabels.ts`、`locationLabelRules.ts`、`objectFilters.ts` 和 `visibleObjectRules.ts` 负责源站地名标签和筛选纯函数。
 
 1. 对象渲染性能
    - 已完成：地图 marker 按当前视口裁剪，并限制最多渲染 `3000` 个。
@@ -122,6 +124,13 @@ npm run build
 4. 共享对象标准化逻辑
    - `src/services/objectData.ts` 和 `scripts/build-object-index.mjs` 目前都有 radar 对象标准化逻辑。
    - 后续应抽出共享转换规则，避免前端远程模式和离线转换脚本的分类规则漂移。
+
+4.1 核心规则测试
+   - 已完成：加入 Vitest 和 `npm run test`。
+   - 已完成：覆盖 `objectMatchesLayer`、`isSourceStaticFilterCategory`、`isObjectInViewport`。
+   - 已完成：覆盖 `formatLocationLabel`、`getObjectDisplayName`、`shouldShowLocationLabel`。
+   - 已完成：覆盖空分类不显示对象、无搜索词静态分类只取 static marker、搜索时允许 raw、Chasm 双层显示和 Locations 缩放过滤。
+   - 后续可补 React 层交互测试，验证侧边栏点击和地图渲染联动。
 
 5. raw 对象完整性校验
    - `fetch-map-unit` 的 manifest 只描述最近一次运行，不一定代表完整 raw 缓存状态。
@@ -148,14 +157,16 @@ npm run build
    - 已完成：`useMapAreas` 统一处理 FeatureCollection、Feature 数组和 MapTower 分组对象三类格式。
    - 已完成：地图上可绘制 Polygon / MultiPolygon 区域，支持填充开关。
    - 已完成：支持按编号、`Area`、`order`、`towerNum` 或标题过滤区域。
-   - 后续可继续补充区域 hover 高亮、区域标签和更接近源站的配色透明度。
+   - 已完成：补充区域数据归一化、图层过滤、编号过滤、坐标转换和填充样式的单元测试。
+   - 已完成：通过本地服务验证 `MapTower.json` 和 `cave_polys_detail.json` 可正常访问。
+   - 后续可继续补充浏览器端交互测试、区域 hover 高亮、区域标签和更接近源站的配色透明度。
 
 ## 建议下一步
 
-优先补测试和继续处理交互细节。现在 `43578` 个离线对象已经可搜索、可分类，地图 marker 已按视口裁剪，结果列表已经虚拟化，`Visible map areas` 也已接入真实区域数据。核心筛选规则仍然需要测试覆盖。
+优先继续处理交互细节。现在 `43578` 个离线对象已经可搜索、可分类，地图 marker 已按视口裁剪，结果列表已经虚拟化，`Visible map areas` 也已接入真实区域数据，核心筛选规则已经有第一批单元测试覆盖。
 
 建议下一项：
 
-1. 为 `objectMatchesLayer`、`shouldShowLocationLabel`、静态分类过滤补测试。
-2. 给区域覆盖层补充基础交互测试和视觉验证。
-3. 继续拆分 `TotkMap.tsx` 内部的 `ObjectMarker`、`MapViewportSync`，降低单文件复杂度。
+1. 增加快速清空搜索和更清晰的结果统计。
+2. 补充浏览器端交互测试，覆盖侧边栏点击、区域切换和地图状态条变化。
+3. 继续增强对象详情字段，例如宝箱内容、掉落物、地图单元和原始参数。

@@ -1,6 +1,7 @@
 import { Polygon, Popup } from 'react-leaflet'
-import type { LatLngExpression, PathOptions } from 'leaflet'
-import type { MapAreaFeature } from '../hooks/useMapAreas'
+import type { LatLngExpression } from 'leaflet'
+import type { MapAreaFeature } from '../utils/mapAreaRules'
+import { getMapAreaPathOptions, toMapAreaPolygons } from '../utils/mapAreaRules'
 
 type MapAreaOverlayProps = {
   // 已按当前图层和编号过滤后的区域；组件只负责把几何数据画到 Leaflet。
@@ -18,7 +19,7 @@ export function MapAreaOverlay({ features, fillAreas }: MapAreaOverlayProps) {
           <Polygon
             key={`${feature.id}-${index}`}
             positions={positions}
-            pathOptions={getPathOptions(feature, fillAreas)}
+            pathOptions={getMapAreaPathOptions(feature, fillAreas)}
           >
             <Popup>
               <strong>{feature.title}</strong>
@@ -32,23 +33,5 @@ export function MapAreaOverlay({ features, fillAreas }: MapAreaOverlayProps) {
 }
 
 function toPolygonPositions(feature: MapAreaFeature): LatLngExpression[][] {
-  if (feature.geometry.type === 'Polygon') {
-    return [toLatLngRing(feature.geometry.coordinates[0] ?? [])]
-  }
-
-  return feature.geometry.coordinates.map((polygon) => toLatLngRing(polygon[0] ?? []))
-}
-
-function toLatLngRing(ring: Array<[number, number]>): LatLngExpression[] {
-  return ring.map(([x, z]) => [z, x])
-}
-
-function getPathOptions(feature: MapAreaFeature, fillAreas: boolean): PathOptions {
-  return {
-    color: feature.color,
-    fillColor: feature.color,
-    fillOpacity: fillAreas ? 0.16 : 0,
-    opacity: 0.82,
-    weight: 2,
-  }
+  return toMapAreaPolygons(feature) as LatLngExpression[][]
 }

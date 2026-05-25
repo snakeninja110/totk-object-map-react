@@ -14,6 +14,7 @@
 - Zustand：全局 UI 状态管理
 - Fuse.js：本地模糊搜索
 - Lucide React：界面图标
+- Vitest：核心规则单元测试
 - ESLint：代码检查
 
 ## 当前功能
@@ -57,6 +58,12 @@ npm run build
 
 ```bash
 npm run lint
+```
+
+运行单元测试：
+
+```bash
+npm run test
 ```
 
 ## 离线瓦片获取
@@ -217,6 +224,8 @@ src/
     VirtualResultList.tsx         # 结果列表虚拟滚动
     TotkMap.tsx                   # Leaflet 地图、瓦片、marker 和视口同步
     MapAreaOverlay.tsx            # Visible map areas 区域覆盖层
+    MapViewportSync.tsx           # Leaflet 缩放和视口边界同步
+    ObjectMarker.tsx              # 单个对象 marker、图标和 popup
     ObjectDetails.tsx             # 右侧对象详情
   constants/
     mapConfig.ts                  # 分类、瓦片、图标、侧栏配置
@@ -226,7 +235,10 @@ src/
     useMapAreas.ts                # 区域覆盖层数据加载和格式归一化
   utils/
     locationLabels.ts             # Locations 文本标签和 ShowLevel 规则
+    locationLabelRules.ts         # 不依赖 Leaflet 的 Locations 纯规则
+    mapAreaRules.ts               # 区域覆盖层归一化、过滤、坐标和样式规则
     objectFilters.ts              # 图层匹配、静态分类、视口过滤
+    visibleObjectRules.ts         # 最终可见对象筛选纯规则
 ```
 
 新增对象、类和关键业务规则应写中文功能型注释。尤其是源站行为复刻规则，例如 `Chasm` 同时显示在 `Surface` 和 `Depths`、`Locations` 按 `ShowLevel` 随缩放逐步显示。
@@ -250,9 +262,10 @@ src/
 - [x] 拆分 `App.tsx`，抽出配置、工具函数、hooks 和页面组件
 - [x] 给结果列表接入虚拟滚动，避免大量 DOM 节点拖慢侧边栏
 - [x] 把 `Visible map areas` 接入真实区域图层数据
+- [x] 为核心筛选规则补充单元测试
+- [x] 为区域覆盖层补充基础规则测试和本地服务验证
 - [ ] 加入 IndexedDB 或本地存储，保存已完成、收藏和自定义标记
 - [ ] 加入点位聚合或 Canvas 渲染，优化大量点位性能
-- [ ] 为核心筛选规则补充单元测试或交互测试
 - [ ] 增加对象详情页字段：掉落物、宝箱内容、地图单元、原始参数
 - [ ] 增加导入 / 导出 JSON 功能
 - [ ] 增加移动端布局优化

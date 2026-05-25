@@ -1,13 +1,4 @@
-import { useCallback, useEffect } from 'react'
-import L from 'leaflet'
-import {
-  CircleMarker,
-  MapContainer,
-  Marker,
-  Popup,
-  TileLayer,
-  useMapEvents,
-} from 'react-leaflet'
+import { MapContainer, TileLayer } from 'react-leaflet'
 import {
   layerFolders,
   tileAttributions,
@@ -27,16 +18,12 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   mapBounds,
-  objectToLatLng,
   totkCrs,
 } from '../utils/mapCoordinates'
-import {
-  getLocationLabelIcon,
-  getObjectDisplayName,
-} from '../utils/locationLabels'
-import { getObjectIcon } from '../utils/objectIcons'
 import type { ViewportBounds } from '../utils/objectFilters'
 import { MapAreaOverlay } from './MapAreaOverlay'
+import { MapViewportSync } from './MapViewportSync'
+import { ObjectMarker } from './ObjectMarker'
 
 type TotkMapProps = {
   // 当前地图层；决定底图瓦片目录、底部工具条图层名和 marker 所属渲染上下文。
@@ -146,110 +133,4 @@ export function TotkMap({
       </div>
     </section>
   )
-}
-
-// 监听 Leaflet 当前缩放层级和视口边界，用于地点分级显示与大数据量按需渲染。
-function MapViewportSync({
-  onZoomChange,
-  onViewportChange,
-}: {
-  onZoomChange: (zoom: number) => void
-  onViewportChange: (bounds: ViewportBounds) => void
-}) {
-  const syncMapState = useCallback(
-    (map: L.Map) => {
-      onZoomChange(map.getZoom())
-      onViewportChange(getPaddedViewportBounds(map))
-    },
-    [onViewportChange, onZoomChange],
-  )
-
-  const map = useMapEvents({
-    moveend: () => syncMapState(map),
-    zoomend: () => syncMapState(map),
-  })
-
-  useEffect(() => {
-    syncMapState(map)
-  }, [map, syncMapState])
-
-  return null
-}
-
-function ObjectMarker({
-  object,
-  renderLocationLabel,
-  onSelect,
-}: {
-  object: MapObject
-  renderLocationLabel: boolean
-  onSelect: () => void
-}) {
-  if (renderLocationLabel && object.category === 'location') {
-    return (
-      <Marker
-        position={objectToLatLng(object)}
-        icon={getLocationLabelIcon(object)}
-        eventHandlers={{
-          click: onSelect,
-        }}
-      >
-        <Popup>
-          <strong>{getObjectDisplayName(object)}</strong>
-          <span>{object.actor}</span>
-        </Popup>
-      </Marker>
-    )
-  }
-
-  const icon = object.iconKey ? getObjectIcon(object.iconKey) : null
-
-  if (icon) {
-    return (
-      <Marker
-        position={objectToLatLng(object)}
-        icon={icon}
-        eventHandlers={{
-          click: onSelect,
-        }}
-      >
-        <Popup>
-          <strong>{getObjectDisplayName(object)}</strong>
-          <span>{object.actor}</span>
-        </Popup>
-      </Marker>
-    )
-  }
-
-  return (
-    <CircleMarker
-      center={objectToLatLng(object)}
-      radius={8}
-      pathOptions={{
-        color: object.color,
-        fillColor: object.color,
-        fillOpacity: 0.82,
-        weight: 2,
-      }}
-      eventHandlers={{
-        click: onSelect,
-      }}
-    >
-      <Popup>
-        <strong>{getObjectDisplayName(object)}</strong>
-        <span>{object.actor}</span>
-      </Popup>
-    </CircleMarker>
-  )
-}
-
-function getPaddedViewportBounds(map: L.Map): ViewportBounds {
-  const bounds = map.getBounds().pad(0.35)
-
-  return {
-    minX: bounds.getWest(),
-    maxX: bounds.getEast(),
-    minZ: bounds.getSouth(),
-    maxZ: bounds.getNorth(),
-  }
 }

@@ -5,13 +5,13 @@ import {
   categoryOrder,
 } from '../constants/mapConfig'
 import type { MapLayer, MapObject, ObjectDataSource } from '../types/map'
-import { shouldShowLocationLabel } from '../utils/locationLabels'
 import {
   isObjectInViewport,
   isSourceStaticFilterCategory,
   objectMatchesLayer,
   type ViewportBounds,
 } from '../utils/objectFilters'
+import { getVisibleObjects } from '../utils/visibleObjectRules'
 
 type UseVisibleObjectsParams = {
   objects: MapObject[]
@@ -66,38 +66,17 @@ export function useVisibleObjects({
     return fuse.search(cleanQuery).map((result) => result.item)
   }, [fuse, objectSource, objects, query])
 
-  const visibleObjects = useMemo(() => {
-    if (selectedCategorySet.size === 0) {
-      return []
-    }
-
-    const usesLocationZoomFilter =
-      selectedCategorySet.has('location') && query.trim().length === 0
-    const usesStaticFilterMarkers = query.trim().length === 0
-
-    return searchedObjects.filter((object) => {
-      const matchesLayer = objectMatchesLayer(object, activeLayer)
-      const matchesCategory = selectedCategorySet.has(object.category)
-
-      if (
-        usesStaticFilterMarkers &&
-        isSourceStaticFilterCategory(object.category) &&
-        object.sourceKind !== 'static'
-      ) {
-        return false
-      }
-
-      if (
-        usesLocationZoomFilter &&
-        object.category === 'location' &&
-        !shouldShowLocationLabel(object, activeLayer, mapZoom)
-      ) {
-        return false
-      }
-
-      return matchesLayer && matchesCategory
-    })
-  }, [activeLayer, mapZoom, query, searchedObjects, selectedCategorySet])
+  const visibleObjects = useMemo(
+    () =>
+      getVisibleObjects({
+        searchedObjects,
+        selectedCategorySet,
+        activeLayer,
+        mapZoom,
+        query,
+      }),
+    [activeLayer, mapZoom, query, searchedObjects, selectedCategorySet],
+  )
 
   const resultListObjects = visibleObjects
 
