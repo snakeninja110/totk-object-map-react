@@ -1,4 +1,4 @@
-import { CircleMarker, Marker, Popup } from 'react-leaflet'
+import { CircleMarker, Marker, Tooltip } from 'react-leaflet'
 import type { MapObject } from '../types/map'
 import { getLocationLabelIcon, getObjectDisplayName } from '../utils/locationLabels'
 import { objectToLatLng } from '../utils/mapCoordinates'
@@ -28,7 +28,7 @@ export function ObjectMarker({
           click: onSelect,
         }}
       >
-        <ObjectPopup object={object} />
+        <ObjectTooltip object={object} />
       </Marker>
     )
   }
@@ -44,7 +44,7 @@ export function ObjectMarker({
           click: onSelect,
         }}
       >
-        <ObjectPopup object={object} />
+        <ObjectTooltip object={object} />
       </Marker>
     )
   }
@@ -61,18 +61,50 @@ export function ObjectMarker({
       }}
       eventHandlers={{
         click: onSelect,
+        mouseout: (event) => {
+          event.target.setStyle({
+            radius: 8,
+            weight: 2,
+          })
+        },
+        mouseover: (event) => {
+          event.target.setStyle({
+            radius: 11,
+            weight: 3,
+          })
+        },
       }}
     >
-      <ObjectPopup object={object} />
+      <ObjectTooltip object={object} />
     </CircleMarker>
   )
 }
 
-function ObjectPopup({ object }: { object: MapObject }) {
+function ObjectTooltip({ object }: { object: MapObject }) {
+  const subtitle = getObjectTooltipSubtitle(object)
+
   return (
-    <Popup>
+    <Tooltip
+      className="object-hover-tooltip"
+      direction="top"
+      offset={[0, -14]}
+      opacity={1}
+    >
       <strong>{getObjectDisplayName(object)}</strong>
-      <span>{object.actor}</span>
-    </Popup>
+      {subtitle ? <span>{subtitle}</span> : null}
+    </Tooltip>
   )
+}
+
+// 生成 hover 提示的副标题；优先展示掉落/宝箱内容，其次展示 Actor，避免 tooltip 过长。
+function getObjectTooltipSubtitle(object: MapObject) {
+  if (object.drop?.values.length) {
+    return object.drop.values.slice(0, 2).join(', ')
+  }
+
+  if (object.displayName && object.name && object.name !== object.displayName) {
+    return object.name
+  }
+
+  return object.actor
 }

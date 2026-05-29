@@ -20,6 +20,8 @@ function App() {
   const activeCategories = useMapUiStore((state) => state.activeCategories)
   const query = useMapUiStore((state) => state.query)
   const selectedObjectId = useMapUiStore((state) => state.selectedObjectId)
+  const pinnedObjectIds = useMapUiStore((state) => state.pinnedObjectIds)
+  const hiddenObjectIds = useMapUiStore((state) => state.hiddenObjectIds)
   const setActiveLayer = useMapUiStore((state) => state.setActiveLayer)
   const setTileSource = useMapUiStore((state) => state.setTileSource)
   const setObjectSource = useMapUiStore((state) => state.setObjectSource)
@@ -30,6 +32,10 @@ function App() {
   const clearCategories = useMapUiStore((state) => state.clearCategories)
   const setQuery = useMapUiStore((state) => state.setQuery)
   const selectObject = useMapUiStore((state) => state.selectObject)
+  const togglePinnedObject = useMapUiStore((state) => state.togglePinnedObject)
+  const hideObject = useMapUiStore((state) => state.hideObject)
+  const clearPinnedObjects = useMapUiStore((state) => state.clearPinnedObjects)
+  const clearHiddenObjects = useMapUiStore((state) => state.clearHiddenObjects)
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM)
   const [viewportBounds, setViewportBounds] = useState<ViewportBounds | null>(null)
   const handleViewportChange = useCallback((bounds: ViewportBounds) => {
@@ -42,6 +48,8 @@ function App() {
   })
   const {
     selectedCategorySet,
+    pinnedObjectSet,
+    hiddenObjectSet,
     visibleObjects,
     resultListObjects,
     viewportObjects,
@@ -52,6 +60,8 @@ function App() {
     objectSource,
     query,
     activeCategories,
+    pinnedObjectIds,
+    hiddenObjectIds,
     activeLayer,
     mapZoom,
     viewportBounds,
@@ -75,6 +85,8 @@ function App() {
         mapAreaFilter={mapAreaFilter}
         mapAreaFill={mapAreaFill}
         selectedCategorySet={selectedCategorySet}
+        pinnedObjectSet={pinnedObjectSet}
+        hiddenObjectSet={hiddenObjectSet}
         categoryCounts={categoryCounts}
         visibleObjects={visibleObjects}
         resultListObjects={resultListObjects}
@@ -89,6 +101,10 @@ function App() {
         setMapAreaFilter={setMapAreaFilter}
         setMapAreaFill={setMapAreaFill}
         selectObject={selectObject}
+        togglePinnedObject={togglePinnedObject}
+        hideObject={hideObject}
+        clearPinnedObjects={clearPinnedObjects}
+        clearHiddenObjects={clearHiddenObjects}
       />
 
       <TotkMap

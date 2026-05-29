@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { MapAreaOption, MapLayer, MapObject, TileSource } from '../types/map'
+import { categoryIconKeys, objectIconAssetPath } from './objectIconConfig'
 
 export const MAP_RENDER_LIMIT = 3000
 
@@ -84,21 +85,13 @@ export const categoryIcons: Record<MapObject['category'], LucideIcon> = {
 }
 
 // 分类按钮优先使用从原站拉取的图标资源；缺失时回退到 lucide 图标。
-export const categoryIconAssets: Partial<Record<MapObject['category'], string>> = {
-  location: '/icons/mapicon_village.svg',
-  place: '/icons/mapicon_hatago.svg',
-  cave: '/icons/cave.png',
-  chasm: '/icons/chasm.png',
-  dragonTear: '/icons/tear.svg',
-  dispenser: '/icons/dispenser.svg',
-  korok: '/icons/mapicon_korok.png',
-  shop: '/icons/mapicon_shop_yorozu.svg',
-  lightroot: '/icons/lightroot.svg',
-  techLab: '/icons/mapicon_labo.svg',
-  tower: '/icons/tower.svg',
-  shrine: '/icons/shrine.svg',
-  weapon: '/icons/sword.svg',
-}
+export const categoryIconAssets: Partial<Record<MapObject['category'], string>> =
+  Object.fromEntries(
+    Object.entries(categoryIconKeys).map(([category, iconKey]) => [
+      category,
+      objectIconAssetPath(iconKey),
+    ]),
+  )
 
 export const categoryLabels: Record<MapObject['category'], string> = {
   location: 'Locations',

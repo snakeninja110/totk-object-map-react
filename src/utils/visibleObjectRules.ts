@@ -18,17 +18,20 @@ export function getVisibleObjects({
   mapZoom,
   query,
 }: GetVisibleObjectsParams) {
-  if (selectedCategorySet.size === 0) {
+  const hasSearchQuery = query.trim().length > 0
+
+  if (selectedCategorySet.size === 0 && !hasSearchQuery) {
     return []
   }
 
   const usesLocationZoomFilter =
-    selectedCategorySet.has('location') && query.trim().length === 0
-  const usesStaticFilterMarkers = query.trim().length === 0
+    selectedCategorySet.has('location') && !hasSearchQuery
+  const usesStaticFilterMarkers = !hasSearchQuery
 
   return searchedObjects.filter((object) => {
     const matchesLayer = objectMatchesLayer(object, activeLayer)
-    const matchesCategory = selectedCategorySet.has(object.category)
+    const matchesCategory =
+      selectedCategorySet.size === 0 || selectedCategorySet.has(object.category)
 
     if (
       usesStaticFilterMarkers &&

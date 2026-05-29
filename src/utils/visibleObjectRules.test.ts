@@ -37,6 +37,24 @@ describe('getVisibleObjects', () => {
     ).toEqual([])
   })
 
+  it('allows search results to show when no category is selected', () => {
+    const chest = createObject({
+      id: 'chest',
+      category: 'chest',
+      sourceKind: 'raw',
+    })
+
+    expect(
+      getVisibleObjects({
+        searchedObjects: [chest],
+        selectedCategorySet: new Set(),
+        activeLayer: 'Surface',
+        mapZoom: 6,
+        query: 'category:chest',
+      }).map((object) => object.id),
+    ).toEqual(['chest'])
+  })
+
   it('uses only source static markers for source-site filter categories when there is no search query', () => {
     const staticShrine = createObject({
       id: 'static-shrine',

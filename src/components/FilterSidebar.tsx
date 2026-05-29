@@ -1,7 +1,9 @@
 import {
   CircleCheck,
+  EyeOff,
   Funnel,
   ListChecks,
+  Pin,
   Search,
   Settings,
   Wrench,
@@ -39,6 +41,10 @@ type FilterSidebarProps = {
   mapAreaFill: boolean
   // 当前已选分类集合；用于高亮分类按钮，并决定地图上实际显示哪些对象。
   selectedCategorySet: Set<MapObject['category']>
+  // 当前固定显示的对象 ID 集合；固定对象会绕过分类和搜索限制显示在地图上。
+  pinnedObjectSet: Set<string>
+  // 当前临时隐藏的对象 ID 集合；用于展示隐藏数量和清空隐藏状态。
+  hiddenObjectSet: Set<string>
   // 每个分类在当前图层和当前搜索条件下的计数；用于分类按钮右侧数字。
   categoryCounts: Record<MapObject['category'], number>
   // 已通过图层、分类、搜索和源站规则筛选的对象；用于显示结果总数。
@@ -67,6 +73,14 @@ type FilterSidebarProps = {
   setMapAreaFill: (shouldFill: boolean) => void
   // 选中对象并驱动右侧详情面板更新。
   selectObject: (id: string) => void
+  // 固定或取消固定对象；固定对象仍遵守当前地图图层。
+  togglePinnedObject: (id: string) => void
+  // 临时隐藏对象；隐藏后对象不再出现在结果列表和地图上。
+  hideObject: (id: string) => void
+  // 清空全部固定对象。
+  clearPinnedObjects: () => void
+  // 清空全部隐藏对象。
+  clearHiddenObjects: () => void
 }
 
 // 左侧筛选面板组件；只负责交互呈现，数据加载和可见对象计算由上层 hook 提供。
@@ -82,6 +96,8 @@ export function FilterSidebar({
   mapAreaFilter,
   mapAreaFill,
   selectedCategorySet,
+  pinnedObjectSet,
+  hiddenObjectSet,
   categoryCounts,
   visibleObjects,
   resultListObjects,
@@ -96,6 +112,10 @@ export function FilterSidebar({
   setMapAreaFilter,
   setMapAreaFill,
   selectObject,
+  togglePinnedObject,
+  hideObject,
+  clearPinnedObjects,
+  clearHiddenObjects,
 }: FilterSidebarProps) {
   return (
     <aside className="sidebar filter-sidebar" aria-label="Map controls">
@@ -125,6 +145,31 @@ export function FilterSidebar({
             placeholder="Search name, actor, tag"
           />
         </label>
+
+        <section className="object-overrides" aria-label="Pinned and hidden objects">
+          <span>
+            <Pin size={16} />
+            {pinnedObjectSet.size} pinned
+          </span>
+          <button
+            type="button"
+            disabled={pinnedObjectSet.size === 0}
+            onClick={clearPinnedObjects}
+          >
+            Clear
+          </button>
+          <span>
+            <EyeOff size={16} />
+            {hiddenObjectSet.size} hidden
+          </span>
+          <button
+            type="button"
+            disabled={hiddenObjectSet.size === 0}
+            onClick={clearHiddenObjects}
+          >
+            Show all
+          </button>
+        </section>
 
         <section className="control-group" aria-labelledby="layer-heading">
           <h2 id="layer-heading">Layer</h2>
@@ -245,7 +290,10 @@ export function FilterSidebar({
           <VirtualResultList
             objects={resultListObjects}
             selectedObjectId={selectedObject?.id ?? null}
+            pinnedObjectSet={pinnedObjectSet}
             onSelect={selectObject}
+            onTogglePinned={togglePinnedObject}
+            onHide={hideObject}
           />
         </section>
       </div>

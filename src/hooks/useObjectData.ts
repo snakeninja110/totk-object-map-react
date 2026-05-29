@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { REMOTE_STATIC_MARKERS_QUERY, loadObjects } from '../services/objectData'
 import type { MapObject, ObjectDataSource } from '../types/map'
+import { getRemoteObjectSearchText, parseObjectSearch } from '../utils/objectSearch'
 
 type UseObjectDataParams = {
   objectSource: ObjectDataSource
@@ -23,7 +24,7 @@ export function useObjectData({
       return ['']
     }
 
-    const cleanQuery = query.trim()
+    const cleanQuery = getRemoteObjectSearchText(parseObjectSearch(query))
 
     if (cleanQuery) {
       return [cleanQuery]

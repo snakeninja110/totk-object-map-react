@@ -11,6 +11,11 @@ import {
   objectMatchesLayer,
   type ViewportBounds,
 } from '../utils/objectFilters'
+import {
+  getPlainSearchText,
+  objectMatchesSearch,
+  parseObjectSearch,
+} from '../utils/objectSearch'
 import { getVisibleObjects } from '../utils/visibleObjectRules'
 
 type UseVisibleObjectsParams = {
@@ -18,6 +23,8 @@ type UseVisibleObjectsParams = {
   objectSource: ObjectDataSource
   query: string
   activeCategories: Array<MapObject['category']>
+  pinnedObjectIds: string[]
+  hiddenObjectIds: string[]
   activeLayer: MapLayer
   mapZoom: number
   viewportBounds: ViewportBounds | null
@@ -29,6 +36,8 @@ export function useVisibleObjects({
   objectSource,
   query,
   activeCategories,
+  pinnedObjectIds,
+  hiddenObjectIds,
   activeLayer,
   mapZoom,
   viewportBounds,
@@ -37,10 +46,16 @@ export function useVisibleObjects({
     () => new Set<MapObject['category']>(activeCategories),
     [activeCategories],
   )
+  const pinnedObjectSet = useMemo(() => new Set(pinnedObjectIds), [pinnedObjectIds])
+  const hiddenObjectSet = useMemo(() => new Set(hiddenObjectIds), [hiddenObjectIds])
+  const availableObjects = useMemo(
+    () => objects.filter((object) => !hiddenObjectSet.has(object.id)),
+    [hiddenObjectSet, objects],
+  )
 
   const fuse = useMemo(
     () =>
-      new Fuse(objects, {
+      new Fuse(availableObjects, {
         threshold: 0.32,
         ignoreLocation: true,
         minMatchCharLength: 2,
@@ -48,35 +63,59 @@ export function useVisibleObjects({
           { name: 'displayName', weight: 0.32 },
           { name: 'name', weight: 0.28 },
           { name: 'actor', weight: 0.25 },
+          { name: 'drop.values', weight: 0.22 },
+          { name: 'equipment', weight: 0.2 },
           { name: 'tags', weight: 0.2 },
+          { name: 'mapName', weight: 0.12 },
+          { name: 'fieldArea', weight: 0.1 },
+          { name: 'region', weight: 0.1 },
           { name: 'category', weight: 0.07 },
           { name: 'layer', weight: 0.05 },
         ],
       }),
-    [objects],
+    [availableObjects],
   )
+
+  const parsedSearch = useMemo(() => parseObjectSearch(query), [query])
 
   const searchedObjects = useMemo(() => {
-    const cleanQuery = query.trim().toLowerCase()
+    const plainSearchText = getPlainSearchText(parsedSearch)
+    const baseObjects =
+      plainSearchText && objectSource === 'local'
+        ? fuse.search(plainSearchText).map((result) => result.item)
+        : availableObjects
 
-    if (!cleanQuery || objectSource === 'remote') {
-      return objects
-    }
+    return query.trim()
+      ? baseObjects.filter((object) => objectMatchesSearch(object, parsedSearch))
+      : baseObjects
+  }, [availableObjects, fuse, objectSource, parsedSearch, query])
 
-    return fuse.search(cleanQuery).map((result) => result.item)
-  }, [fuse, objectSource, objects, query])
+  const visibleObjects = useMemo(() => {
+    const filteredObjects = getVisibleObjects({
+      searchedObjects,
+      selectedCategorySet,
+      activeLayer,
+      mapZoom,
+      query,
+    })
+    const visibleObjectIds = new Set(filteredObjects.map((object) => object.id))
+    const pinnedObjects = availableObjects.filter(
+      (object) =>
+        pinnedObjectSet.has(object.id) &&
+        !visibleObjectIds.has(object.id) &&
+        objectMatchesLayer(object, activeLayer),
+    )
 
-  const visibleObjects = useMemo(
-    () =>
-      getVisibleObjects({
-        searchedObjects,
-        selectedCategorySet,
-        activeLayer,
-        mapZoom,
-        query,
-      }),
-    [activeLayer, mapZoom, query, searchedObjects, selectedCategorySet],
-  )
+    return [...pinnedObjects, ...filteredObjects]
+  }, [
+    activeLayer,
+    availableObjects,
+    mapZoom,
+    pinnedObjectSet,
+    query,
+    searchedObjects,
+    selectedCategorySet,
+  ])
 
   const resultListObjects = visibleObjects
 
@@ -120,6 +159,8 @@ export function useVisibleObjects({
 
   return {
     selectedCategorySet,
+    pinnedObjectSet,
+    hiddenObjectSet,
     searchedObjects,
     visibleObjects,
     resultListObjects,

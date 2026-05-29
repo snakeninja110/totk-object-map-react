@@ -23,6 +23,10 @@ type MapUiState = {
   activeCategories: ActiveObjectCategory[]
   query: string
   selectedObjectId: string | null
+  // 固定到地图上的对象 ID；固定对象会绕过搜索和分类限制，但仍遵守当前地图图层。
+  pinnedObjectIds: string[]
+  // 临时隐藏的对象 ID；隐藏对象不会进入结果列表、详情选择和地图渲染。
+  hiddenObjectIds: string[]
   setActiveLayer: (layer: MapLayer) => void
   setTileSource: (source: TileSource) => void
   setObjectSource: (source: ObjectDataSource) => void
@@ -33,6 +37,10 @@ type MapUiState = {
   clearCategories: () => void
   setQuery: (query: string) => void
   selectObject: (objectId: string | null) => void
+  togglePinnedObject: (objectId: string) => void
+  hideObject: (objectId: string) => void
+  clearPinnedObjects: () => void
+  clearHiddenObjects: () => void
 }
 
 // 空的 activeCategories 表示不显示任何点位；用户勾选一个或多个分类后才渲染对应对象。
@@ -46,6 +54,8 @@ export const useMapUiStore = create<MapUiState>((set) => ({
   activeCategories: [],
   query: '',
   selectedObjectId: null,
+  pinnedObjectIds: [],
+  hiddenObjectIds: [],
   setActiveLayer: (layer) =>
     set({
       activeLayer: layer,
@@ -97,5 +107,31 @@ export const useMapUiStore = create<MapUiState>((set) => ({
   selectObject: (objectId) =>
     set({
       selectedObjectId: objectId,
+    }),
+  togglePinnedObject: (objectId) =>
+    set((state) => {
+      const isPinned = state.pinnedObjectIds.includes(objectId)
+
+      return {
+        pinnedObjectIds: isPinned
+          ? state.pinnedObjectIds.filter((id) => id !== objectId)
+          : [...state.pinnedObjectIds, objectId],
+      }
+    }),
+  hideObject: (objectId) =>
+    set((state) => ({
+      hiddenObjectIds: state.hiddenObjectIds.includes(objectId)
+        ? state.hiddenObjectIds
+        : [...state.hiddenObjectIds, objectId],
+      pinnedObjectIds: state.pinnedObjectIds.filter((id) => id !== objectId),
+      selectedObjectId: state.selectedObjectId === objectId ? null : state.selectedObjectId,
+    })),
+  clearPinnedObjects: () =>
+    set({
+      pinnedObjectIds: [],
+    }),
+  clearHiddenObjects: () =>
+    set({
+      hiddenObjectIds: [],
     }),
 }))

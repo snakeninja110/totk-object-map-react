@@ -1,8 +1,9 @@
+import { EyeOff, Pin, PinOff } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { MapObject } from '../types/map'
 import { getObjectDisplayName } from '../utils/locationLabels'
 
-const RESULT_ROW_HEIGHT = 62
+const RESULT_ROW_HEIGHT = 72
 const RESULT_OVERSCAN = 6
 const FALLBACK_LIST_HEIGHT = 260
 
@@ -11,8 +12,14 @@ type VirtualResultListProps = {
   objects: MapObject[]
   // 当前详情面板选中的对象 ID；用于高亮列表中对应行。
   selectedObjectId: string | null
+  // 当前固定显示的对象 ID 集合；用于给行按钮展示固定状态。
+  pinnedObjectSet: Set<string>
   // 点击列表行时把对象选择交还给上层 store。
   onSelect: (id: string) => void
+  // 固定或取消固定当前对象。
+  onTogglePinned: (id: string) => void
+  // 临时隐藏当前对象。
+  onHide: (id: string) => void
 }
 
 // 轻量虚拟列表组件；不引入额外依赖，按固定行高计算可见范围。
@@ -20,7 +27,10 @@ type VirtualResultListProps = {
 export function VirtualResultList({
   objects,
   selectedObjectId,
+  pinnedObjectSet,
   onSelect,
+  onTogglePinned,
+  onHide,
 }: VirtualResultListProps) {
   const listRef = useRef<HTMLDivElement | null>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -76,20 +86,45 @@ export function VirtualResultList({
       <div className="virtual-result-spacer" style={{ height: totalHeight }}>
         {visibleRange.visibleObjects.map((object, index) => {
           const absoluteIndex = visibleRange.startIndex + index
+          const isPinned = pinnedObjectSet.has(object.id)
 
           return (
-            <button
+            <div
               key={object.id}
-              type="button"
-              className={selectedObjectId === object.id ? 'active' : ''}
+              className={`result-row ${selectedObjectId === object.id ? 'active' : ''} ${
+                isPinned ? 'pinned' : ''
+              }`}
               style={{
                 transform: `translateY(${absoluteIndex * RESULT_ROW_HEIGHT}px)`,
               }}
-              onClick={() => onSelect(object.id)}
             >
-              <span>{getObjectDisplayName(object)}</span>
-              <small>{object.actor}</small>
-            </button>
+              <button
+                type="button"
+                className="result-main"
+                onClick={() => onSelect(object.id)}
+              >
+                <span>{getObjectDisplayName(object)}</span>
+                <small>{object.actor}</small>
+              </button>
+              <div className="result-actions" aria-label={`${getObjectDisplayName(object)} actions`}>
+                <button
+                  type="button"
+                  aria-label={isPinned ? 'Remove from map' : 'Add to map'}
+                  title={isPinned ? 'Remove from map' : 'Add to map'}
+                  onClick={() => onTogglePinned(object.id)}
+                >
+                  {isPinned ? <PinOff size={16} /> : <Pin size={16} />}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Hide object"
+                  title="Hide object"
+                  onClick={() => onHide(object.id)}
+                >
+                  <EyeOff size={16} />
+                </button>
+              </div>
+            </div>
           )
         })}
       </div>
