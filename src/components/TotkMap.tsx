@@ -46,6 +46,20 @@ type TotkMapProps = {
   viewportObjects: MapObject[]
   // 实际交给 Leaflet 渲染的对象；通常是 viewportObjects 的截断结果，避免一次渲染过多 marker。
   mapObjects: MapObject[]
+  // 当前被选中的对象 ID；用于给地图 marker 添加源站风格的蓝色选中 pin。
+  selectedObjectId: string | null
+  // 是否显示地图状态条；由 Settings 面板控制。
+  showMapStatusBar: boolean
+  // 是否显示 marker hover tooltip；由 Settings 面板控制。
+  showMarkerTooltips: boolean
+  // 是否启用 marker hover 高亮；由 Settings 面板控制。
+  enableMarkerHoverEffects: boolean
+  // 是否在 marker hover tooltip 中显示对象高度。
+  showObjectHeightsInTooltips: boolean
+  // 是否按 Actor 类型给圆点 marker 上色。
+  colorPerActor: boolean
+  // 是否使用内部 Actor 名称显示对象标题。
+  useActorNames: boolean
   // 是否把 Location 类对象渲染为文字标签；仅选择 Locations 分类时启用。
   renderLocationLabels: boolean
   // 写回当前 Leaflet 缩放层级；供源站 ShowLevel 地名显示规则和工具条使用。
@@ -69,6 +83,13 @@ export function TotkMap({
   visibleObjects,
   viewportObjects,
   mapObjects,
+  selectedObjectId,
+  showMapStatusBar,
+  showMarkerTooltips,
+  enableMarkerHoverEffects,
+  showObjectHeightsInTooltips,
+  colorPerActor,
+  useActorNames,
   renderLocationLabels,
   setMapZoom,
   onViewportChange,
@@ -81,7 +102,10 @@ export function TotkMap({
   })
 
   return (
-    <section className="map-stage" aria-label="Interactive map">
+    <section
+      className={`map-stage ${enableMarkerHoverEffects ? '' : 'marker-hover-disabled'}`}
+      aria-label="Interactive map"
+    >
       <MapContainer
         center={[0, 0]}
         zoom={DEFAULT_ZOOM}
@@ -108,29 +132,37 @@ export function TotkMap({
           <ObjectMarker
             key={object.id}
             object={object}
+            isSelected={object.id === selectedObjectId}
+            showTooltip={showMarkerTooltips}
+            enableHoverEffects={enableMarkerHoverEffects}
+            showObjectHeight={showObjectHeightsInTooltips}
+            colorPerActor={colorPerActor}
+            useActorNames={useActorNames}
             renderLocationLabel={renderLocationLabels}
             onSelect={() => selectObject(object.id)}
           />
         ))}
       </MapContainer>
 
-      <div className="map-toolbar">
-        <span>{activeLayer}</span>
-        <span>{tileSource === 'local' ? 'Local tiles' : 'Remote tiles'}</span>
-        <span>{objectSource === 'local' ? 'Local data' : 'Remote API'}</span>
-        <span>Zoom {mapZoom}</span>
-        <span>{layerFolders[activeLayer]}</span>
-        <span>{visibleObjects.length} objects</span>
-        <span>{viewportObjects.length} in view</span>
-        {activeMapArea !== 'none' ? (
-          <span>
-            {mapAreaError ? 'Area load failed' : `${mapAreaFeatures.length} areas`}
-          </span>
-        ) : null}
-        {viewportObjects.length > mapObjects.length ? (
-          <span>{mapObjects.length} rendered</span>
-        ) : null}
-      </div>
+      {showMapStatusBar ? (
+        <div className="map-toolbar">
+          <span>{activeLayer}</span>
+          <span>{tileSource === 'local' ? 'Local tiles' : 'Remote tiles'}</span>
+          <span>{objectSource === 'local' ? 'Local data' : 'Remote API'}</span>
+          <span>Zoom {mapZoom}</span>
+          <span>{layerFolders[activeLayer]}</span>
+          <span>{visibleObjects.length} objects</span>
+          <span>{viewportObjects.length} in view</span>
+          {activeMapArea !== 'none' ? (
+            <span>
+              {mapAreaError ? 'Area load failed' : `${mapAreaFeatures.length} areas`}
+            </span>
+          ) : null}
+          {viewportObjects.length > mapObjects.length ? (
+            <span>{mapObjects.length} rendered</span>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }

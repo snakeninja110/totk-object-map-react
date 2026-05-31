@@ -12,7 +12,11 @@ const overviewLocationNames: Record<string, string> = {
   MapRegion_Tamul: 'Akkala',
 }
 
-export function getObjectDisplayName(object: MapObject) {
+export function getObjectDisplayName(object: MapObject, useActorNames = false) {
+  if (useActorNames) {
+    return object.actor
+  }
+
   if (object.displayName) {
     return object.displayName
   }

@@ -1,4 +1,4 @@
-import type { MapLayer, MapObject, ObjectDataSource } from '../types/map'
+import type { MapLayer, MapObject, ObjectDataSource, SearchMapType } from '../types/map'
 import {
   STATIC_MARKER_TYPES,
   categoryColor,
@@ -17,7 +17,7 @@ import {
 } from '../utils/objectStandardization'
 
 const LOCAL_OBJECTS_URL = '/data/objects/index.json'
-const RADAR_OBJECTS_URL = 'https://radar-totk.zeldamods.org/objs/MainAndMinusField/'
+const RADAR_OBJECTS_BASE_URL = 'https://radar-totk.zeldamods.org/objs'
 const REMOTE_STATIC_MARKERS_URL =
   'https://objmap-totk.zeldamods.org/game_files/map_summary/MainField/static.json'
 const REMOTE_LOCATION_NAMES_URL =
@@ -34,6 +34,10 @@ type LoadObjectsParams = {
   source: ObjectDataSource
   // 搜索词；remote 模式下空搜索词不会请求 radar API，特殊内部值会加载 static marker。
   query: string
+  // 远程 radar 搜索的地图类型；本地数据加载不使用。
+  searchMapType?: SearchMapType
+  // 远程 radar 搜索的地图名；空字符串表示源站 All。
+  searchMapName?: string
   // React effect 清理时传入的取消信号，避免旧请求覆盖新状态。
   signal?: AbortSignal
 }
@@ -57,6 +61,8 @@ type StaticNameIndex = Record<string, string>
 export async function loadObjects({
   source,
   query,
+  searchMapType = 'MainAndMinusField',
+  searchMapName = '',
   signal,
 }: LoadObjectsParams): Promise<MapObject[]> {
   if (source === 'local') {
@@ -73,7 +79,7 @@ export async function loadObjects({
     return []
   }
 
-  return loadRemoteObjects(cleanQuery, signal)
+  return loadRemoteObjects(cleanQuery, searchMapType, searchMapName, signal)
 }
 
 async function loadLocalObjects(signal?: AbortSignal) {
@@ -93,8 +99,17 @@ async function loadLocalObjects(signal?: AbortSignal) {
   return objects.map(parseMapObject)
 }
 
-async function loadRemoteObjects(query: string, signal?: AbortSignal) {
-  const url = new URL(RADAR_OBJECTS_URL)
+async function loadRemoteObjects(
+  query: string,
+  searchMapType: SearchMapType,
+  searchMapName: string,
+  signal?: AbortSignal,
+) {
+  const url = new URL(
+    `${RADAR_OBJECTS_BASE_URL}/${encodeURIComponent(searchMapType)}/${encodeURIComponent(
+      searchMapName,
+    )}`,
+  )
   url.searchParams.set('q', query)
   url.searchParams.set('withMapNames', 'true')
   url.searchParams.set('limit', String(REMOTE_RESULT_LIMIT))

@@ -1,18 +1,36 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { categoryLabels } from '../constants/mapConfig'
 import type { MapObject } from '../types/map'
-import { getObjectDisplayName } from '../utils/locationLabels'
 import { formatGameCoordinates } from '../utils/mapCoordinates'
+import { formatObjectId, getObjectTitle } from '../utils/objectDisplay'
 
 type ObjectDetailsProps = {
   // 当前选中的地图对象；为空时显示右侧空状态。
   selectedObject: MapObject | null
+  // 是否默认展开高级详情；由 Settings 面板控制。
+  defaultAdvancedDetailsOpen: boolean
+  // 是否使用内部 Actor 名称显示对象标题。
+  useActorNames: boolean
+  // 是否用十六进制显示数字 hash ID。
+  useHexForHashIds: boolean
+  // 是否使用游戏内坐标格式。
+  inGameCoordinates: boolean
+  // 关闭详情面板时清空当前选中对象。
+  onClose: () => void
 }
 
 // 右侧对象详情面板；只负责展示当前选中对象的基础信息，不参与地图筛选和数据加载。
-export function ObjectDetails({ selectedObject }: ObjectDetailsProps) {
-  const sourceRows = selectedObject ? getSourceRows(selectedObject) : []
+export function ObjectDetails({
+  selectedObject,
+  defaultAdvancedDetailsOpen,
+  useActorNames,
+  useHexForHashIds,
+  inGameCoordinates,
+  onClose,
+}: ObjectDetailsProps) {
+  const displaySettings = { useActorNames, useHexForHashIds }
+  const sourceRows = selectedObject ? getSourceRows(selectedObject, displaySettings) : []
   const generationRows = selectedObject ? getGenerationRows(selectedObject) : []
   const mapUnitRows = selectedObject ? getMapUnitRows(selectedObject) : []
   const rawParamRows = selectedObject
@@ -30,15 +48,23 @@ export function ObjectDetails({ selectedObject }: ObjectDetailsProps) {
     <aside className="details" aria-label="Selected object details">
       {selectedObject ? (
         <>
+          <button
+            type="button"
+            className="detail-close"
+            aria-label="Close object details"
+            onClick={onClose}
+          >
+            <X size={28} />
+          </button>
           <div className="detail-header">
             <p>{categoryLabels[selectedObject.category]}</p>
-            <h2>{getObjectDisplayName(selectedObject)}</h2>
+            <h2>{getObjectTitle(selectedObject, displaySettings)}</h2>
             {getDetailSubtitle(selectedObject) ? (
               <strong>{getDetailSubtitle(selectedObject)}</strong>
             ) : null}
           </div>
           <dl className="detail-summary">
-            {getSummaryRows(selectedObject).map(([label, value]) => (
+            {getSummaryRows(selectedObject, inGameCoordinates).map(([label, value]) => (
               <div key={label}>
                 <dt>{label}</dt>
                 <dd>{value}</dd>
@@ -50,11 +76,13 @@ export function ObjectDetails({ selectedObject }: ObjectDetailsProps) {
             <DetailCard
               object={selectedObject}
               title={selectedObject.category === 'chest' ? 'Treasure Chest' : 'Object Items'}
+              useActorNames={useActorNames}
+              useHexForHashIds={useHexForHashIds}
             />
           ) : null}
 
           {hasExtendedDetails ? (
-            <details className="advanced-details">
+            <details className="advanced-details" open={defaultAdvancedDetailsOpen}>
               <summary>Advanced details</summary>
               <div className="detail-sections">
                 {sourceRows.length ? (
@@ -150,11 +178,17 @@ function DetailRows({ rows }: { rows: DetailRow[] }) {
 function DetailCard({
   object,
   title,
+  useActorNames,
+  useHexForHashIds,
 }: {
   // 当前选中的对象；用于展示掉落物、位置和源数据 ID。
   object: MapObject
   // 卡片标题；宝箱对象显示 Treasure Chest，其他对象显示 Object Items。
   title: string
+  // 是否使用内部 Actor 名称显示对象标题。
+  useActorNames: boolean
+  // 是否用十六进制显示 ID。
+  useHexForHashIds: boolean
 }) {
   const items = object.drop?.values.length ? object.drop.values : object.equipment ?? []
 
@@ -163,19 +197,22 @@ function DetailCard({
       <h3>{title}</h3>
       <article className="detail-item-card">
         <strong>{items.length ? items.join(', ') : formatDrop(object.drop)}</strong>
-        <span>{getObjectDisplayName(object)}</span>
-        <small>ID {object.id}</small>
+        <span>{getObjectTitle(object, { useActorNames })}</span>
+        <small>ID {formatObjectId(object.id, { useHexForHashIds })}</small>
       </article>
     </section>
   )
 }
 
 // 详情摘要只保留源站面板默认可见的核心字段，避免技术参数挤占阅读空间。
-function getSummaryRows(object: MapObject): DetailRow[] {
-  return [
-    ['Actor', object.actor],
-    ['Position', formatGameCoordinates(object)],
+function getSummaryRows(object: MapObject, inGameCoordinates: boolean): DetailRow[] {
+  const dungeonNumber = getDungeonNumber(object)
+  const rows: NullableDetailRow[] = [
+    dungeonNumber ? ['Dungeon number', dungeonNumber] : ['Type', getSummaryType(object)],
+    ['Position', formatGameCoordinates(object, inGameCoordinates)],
   ]
+
+  return rows.filter(isDetailRow)
 }
 
 // 详情标题下方的副标题；优先使用宝箱/掉落物，其次展示原始名称。
@@ -192,14 +229,24 @@ function getDetailSubtitle(object: MapObject) {
 }
 
 // 把源数据 ID 和展示控制字段整理到一起，方便和 zeldamods 原始数据互相对照。
-function getSourceRows(object: MapObject) {
+function getSourceRows(
+  object: MapObject,
+  settings: { useHexForHashIds: boolean },
+) {
   const rawParams = object.rawParams ?? {}
 
   const rows: NullableDetailRow[] = [
+    ['Actor', object.actor],
     ['Source kind', object.sourceKind],
-    ['Object ID', object.id],
-    ['Obj ID', readDetailParam(rawParams, 'objid')],
-    ['Hash ID', readDetailParam(rawParams, 'hash_id') ?? readDetailParam(rawParams, 'id')],
+    ['Object ID', formatObjectId(object.id, settings)],
+    ['Obj ID', formatObjectId(readDetailParam(rawParams, 'objid'), settings)],
+    [
+      'Hash ID',
+      formatObjectId(
+        readDetailParam(rawParams, 'hash_id') ?? readDetailParam(rawParams, 'id'),
+        settings,
+      ),
+    ],
     ['Message ID', readDetailParam(rawParams, 'MessageID')],
     ['Save flag', readDetailParam(rawParams, 'SaveFlag')],
     ['Icon key', object.iconKey],
@@ -209,6 +256,38 @@ function getSourceRows(object: MapObject) {
   ]
 
   return rows.filter(isDetailRow)
+}
+
+function getSummaryType(object: MapObject) {
+  if (object.category === 'chest') {
+    return 'Treasure chest'
+  }
+
+  if (object.category === 'cave') {
+    return object.iconKey === 'well' ? 'Well' : 'Cave'
+  }
+
+  return categoryLabels[object.category]
+}
+
+function getDungeonNumber(object: MapObject) {
+  const rawParams = object.rawParams ?? {}
+  const values = [
+    object.locationId,
+    object.name,
+    object.displayName,
+    readDetailParam(rawParams, 'MessageID'),
+  ]
+
+  for (const value of values) {
+    const match = String(value ?? '').match(/Dungeon0*(\d+)/)
+
+    if (match) {
+      return String(Number(match[1]))
+    }
+  }
+
+  return ''
 }
 
 // 把对象生成相关参数单独分组；当前数据只展示本地 raw/static 缓存真实存在的字段。

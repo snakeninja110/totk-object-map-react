@@ -4,6 +4,21 @@ export type TileSource = 'local' | 'remote'
 
 export type ObjectDataSource = 'local' | 'remote'
 
+export type SearchMapType =
+  | 'MainAndMinusField'
+  | 'SmallDungeon'
+  | 'LargeDungeon'
+  | 'NormalStage'
+  | 'MainField'
+  | 'MinusField'
+
+export type SearchPreset = {
+  // 预设显示名称；用于 Settings 自定义预设和搜索预设按钮。
+  label: string
+  // 预设写入搜索框的查询语句。
+  query: string
+}
+
 export type MapAreaId =
   | 'none'
   | 'mapTower'

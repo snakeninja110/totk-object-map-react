@@ -14,10 +14,80 @@ import {
   Waypoints,
   type LucideIcon,
 } from 'lucide-react'
-import type { MapAreaOption, MapLayer, MapObject, TileSource } from '../types/map'
+import type {
+  MapAreaOption,
+  MapLayer,
+  MapObject,
+  SearchMapType,
+  SearchPreset,
+  TileSource,
+} from '../types/map'
 import { categoryIconKeys, objectIconAssetPath } from './objectIconConfig'
 
 export const MAP_RENDER_LIMIT = 3000
+
+// 搜索预设；先提供常用固定预设，后续自定义预设可基于这份结构扩展到 localStorage。
+export const searchPresets: SearchPreset[] = [
+  {
+    label: 'Treasure Chests',
+    query: 'category:chest',
+  },
+  {
+    label: 'Arrows',
+    query: 'drop:Arrow',
+  },
+  {
+    label: 'Weapons',
+    query: 'category:weapon',
+  },
+  {
+    label: 'Enemies',
+    query: 'category:enemy',
+  },
+  {
+    label: 'Shrines',
+    query: 'category:shrine',
+  },
+  {
+    label: 'Surface Chests',
+    query: 'category:chest layer:Surface',
+  },
+]
+
+export const searchMapTypeOptions: Array<{ value: SearchMapType; label: string }> = [
+  { value: 'MainAndMinusField', label: 'Sky, Surface and Depths' },
+  { value: 'SmallDungeon', label: 'Shrines (SmallDungeon)' },
+  { value: 'LargeDungeon', label: 'Temples (LargeDungeon)' },
+  { value: 'NormalStage', label: 'Special Maps (NormalStage)' },
+  { value: 'MainField', label: 'Sky and Surface (MainField)' },
+  { value: 'MinusField', label: 'Depths (MinusField)' },
+]
+
+// 源站 Settings 的 mapName 下拉；当前只列出稳定的非神庙地图，神庙可先用 All 搜索。
+export const searchMapNameOptions: Record<SearchMapType, Array<{ value: string; label: string }>> = {
+  MainAndMinusField: [{ value: '', label: 'All' }],
+  SmallDungeon: [{ value: '', label: 'All' }],
+  LargeDungeon: [
+    { value: 'LargeDungeonFire', label: 'Fire Temple' },
+    { value: 'LargeDungeonThunder', label: 'Lightning Temple' },
+    { value: 'LargeDungeonWater', label: 'Water Temple' },
+    { value: 'LargeDungeonWind', label: 'Wind Temple' },
+    { value: 'LargeDungeonSoul', label: 'Spirit Temple' },
+    { value: 'LargeDungeonHyruleCastle', label: 'Hyrule Castle (Sky)' },
+  ],
+  NormalStage: [
+    { value: 'OpeningField', label: 'Prologue (OpeningField)' },
+    { value: 'TitleScene', label: 'TitleScene' },
+  ],
+  MainField: [
+    { value: '', label: 'All' },
+    { value: 'Surface', label: 'Surface' },
+    { value: 'Sky', label: 'Sky' },
+    { value: 'Cave', label: 'Cave' },
+    { value: 'DeepHole', label: 'Chasms' },
+  ],
+  MinusField: [{ value: '', label: 'All' }],
+}
 
 // Leaflet 瓦片目录和游戏图层的映射；Surface 在源站文件目录中叫 Ground。
 export const layerFolders: Record<MapLayer, string> = {

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { REMOTE_STATIC_MARKERS_QUERY, loadObjects } from '../services/objectData'
-import type { MapObject, ObjectDataSource } from '../types/map'
+import type { MapObject, ObjectDataSource, SearchMapType } from '../types/map'
 import { getRemoteObjectSearchText, parseObjectSearch } from '../utils/objectSearch'
 
 type UseObjectDataParams = {
   objectSource: ObjectDataSource
   query: string
   activeCategories: Array<MapObject['category']>
+  searchMapType: SearchMapType
+  searchMapName: string
 }
 
 // 统一管理对象数据加载；App 只消费结果，不直接处理 Local/Remote 的查询差异。
@@ -14,6 +16,8 @@ export function useObjectData({
   objectSource,
   query,
   activeCategories,
+  searchMapType,
+  searchMapName,
 }: UseObjectDataParams) {
   const [objects, setObjects] = useState<MapObject[]>([])
   const [objectsLoading, setObjectsLoading] = useState(false)
@@ -48,6 +52,8 @@ export function useObjectData({
         loadObjects({
           source: objectSource,
           query: objectLoadQuery,
+          searchMapType,
+          searchMapName,
           signal: controller.signal,
         }),
       ),
@@ -70,7 +76,7 @@ export function useObjectData({
       })
 
     return () => controller.abort()
-  }, [objectLoadQueries, objectSource])
+  }, [objectLoadQueries, objectSource, searchMapName, searchMapType])
 
   const objectStatusText = getObjectStatusText({
     objectSource,
@@ -79,6 +85,8 @@ export function useObjectData({
     objectsLoading,
     objectsError,
     objectCount: objects.length,
+    searchMapType,
+    searchMapName,
   })
 
   return {
@@ -106,6 +114,8 @@ function getObjectStatusText({
   objectsLoading,
   objectsError,
   objectCount,
+  searchMapType,
+  searchMapName,
 }: {
   objectSource: ObjectDataSource
   query: string
@@ -113,6 +123,8 @@ function getObjectStatusText({
   objectsLoading: boolean
   objectsError: string | null
   objectCount: number
+  searchMapType: SearchMapType
+  searchMapName: string
 }) {
   if (objectsError) {
     return objectsError
@@ -126,5 +138,11 @@ function getObjectStatusText({
     return 'Static markers loaded. Choose categories to show points.'
   }
 
-  return `${objectCount} ${objectSource === 'local' ? 'local objects' : 'remote results'}`
+  if (objectSource === 'remote') {
+    const mapScope = searchMapName ? `${searchMapType}/${searchMapName}` : searchMapType
+
+    return `${objectCount} remote results from ${mapScope}`
+  }
+
+  return `${objectCount} local objects`
 }

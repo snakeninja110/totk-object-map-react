@@ -1,5 +1,5 @@
 import L from 'leaflet'
-import type { MapObject } from '../types/map'
+import type { MapLayer, MapObject } from '../types/map'
 
 export const TILE_SIZE = 256
 export const MAP_SIZE: [number, number] = [24000, 20000]
@@ -33,8 +33,41 @@ export function objectToLatLng(object: Pick<MapObject, 'x' | 'z'>): L.LatLngTupl
   return [object.z, object.x]
 }
 
-export function formatGameCoordinates(object: Pick<MapObject, 'x' | 'y' | 'z'>) {
-  return `${object.x}, ${object.y}, ${-object.z}`
+export function formatGameCoordinates(
+  object: Pick<MapObject, 'x' | 'y' | 'z'>,
+  useInGameCoordinates = false,
+) {
+  if (useInGameCoordinates) {
+    return `${formatCoordinate(object.x)}, ${formatCoordinate(-object.z)}, ${formatCoordinate(
+      object.y - 106,
+    )}`
+  }
+
+  return `${formatCoordinate(object.x)}, ${formatCoordinate(object.y)}, ${formatCoordinate(
+    -object.z,
+  )}`
+}
+
+function formatCoordinate(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
+
+export function formatCopiedCoordinates(
+  object: Pick<MapObject, 'x' | 'z'>,
+  activeLayer: MapLayer,
+  copyCoordinatesXYZ: boolean,
+) {
+  if (copyCoordinatesXYZ) {
+    const layerHeight = {
+      Surface: 150,
+      Sky: 1500,
+      Depths: -500,
+    }[activeLayer]
+
+    return `${formatCoordinate(object.x)},${layerHeight},${formatCoordinate(-object.z)}`
+  }
+
+  return `${formatCoordinate(object.x)},${formatCoordinate(-object.z)}`
 }
 
 export function isWithinGameBounds(object: Pick<MapObject, 'x' | 'z'>) {

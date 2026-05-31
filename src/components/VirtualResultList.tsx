@@ -1,7 +1,7 @@
 import { EyeOff, Pin, PinOff } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { MapObject } from '../types/map'
-import { getObjectDisplayName } from '../utils/locationLabels'
+import { getObjectTitle } from '../utils/objectDisplay'
 
 const RESULT_ROW_HEIGHT = 72
 const RESULT_OVERSCAN = 6
@@ -14,6 +14,8 @@ type VirtualResultListProps = {
   selectedObjectId: string | null
   // 当前固定显示的对象 ID 集合；用于给行按钮展示固定状态。
   pinnedObjectSet: Set<string>
+  // 是否使用内部 Actor 名称显示对象标题。
+  useActorNames: boolean
   // 点击列表行时把对象选择交还给上层 store。
   onSelect: (id: string) => void
   // 固定或取消固定当前对象。
@@ -28,6 +30,7 @@ export function VirtualResultList({
   objects,
   selectedObjectId,
   pinnedObjectSet,
+  useActorNames,
   onSelect,
   onTogglePinned,
   onHide,
@@ -87,6 +90,7 @@ export function VirtualResultList({
         {visibleRange.visibleObjects.map((object, index) => {
           const absoluteIndex = visibleRange.startIndex + index
           const isPinned = pinnedObjectSet.has(object.id)
+          const objectTitle = getObjectTitle(object, { useActorNames })
 
           return (
             <div
@@ -103,10 +107,10 @@ export function VirtualResultList({
                 className="result-main"
                 onClick={() => onSelect(object.id)}
               >
-                <span>{getObjectDisplayName(object)}</span>
+                <span>{objectTitle}</span>
                 <small>{object.actor}</small>
               </button>
-              <div className="result-actions" aria-label={`${getObjectDisplayName(object)} actions`}>
+              <div className="result-actions" aria-label={`${objectTitle} actions`}>
                 <button
                   type="button"
                   aria-label={isPinned ? 'Remove from map' : 'Add to map'}
