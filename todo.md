@@ -87,10 +87,36 @@ npm run build
 
 ## 优化待办
 
+0. 源站侧边栏对齐功能清单
+   - 背景：浏览器对比源站后，当前最大产品差距集中在侧边栏。源站左侧 rail 是 `Search`、`Filter`、`Draw`、`Checklists`、`Tools`、`Settings` 六个完整工作区；本项目当前只有 `Filter` 和 `Settings` 两个可操作面板，Search、Checklist、Draw、Completed/Checklists、Tools 图标仍是视觉占位。
+   - P0：先补工作区骨架，消除“看起来能点但实际不能点”的断层。
+     - [x] 把 store 中的 `SidebarPanel` 从 `filter | settings` 扩展为 `search | filter | checklist | draw | tools | settings`。
+     - [x] 把 rail 上 Search、Checklist、Draw、Completed/Checklists、Tools 图标改成真实按钮，并提供 active 状态、tooltip/aria-label 和键盘可达性。
+     - [x] 为每个新增面板建立最小可用空状态：标题、说明、当前状态摘要和下一步操作按钮。
+     - [x] 增加侧边栏左右切换或折叠能力，对齐源站 `Move to the right side` 的基本使用场景。
+   - P1：拆分 Search 和 Filter，让 Filter 只负责显示范围。
+     - [x] 新增 Search 面板，迁移当前搜索框、搜索预设、搜索语法帮助和结果列表。
+     - [x] 增强 Search 帮助，覆盖基础关键词、精确短语、字段过滤、布尔组合、常用示例和结构化语法。
+     - [x] 增加快速清空搜索、搜索结果总数、当前地图渲染数和 Add/Remove from map 操作。
+     - [x] Filter 面板保留分类按钮、`Show Korok IDs`、Visible map areas、区域编号过滤和区域填充开关。
+     - [x] 调整默认显示策略，避免数据加载成功后首屏仍显示 `0 visible`；可选方案是默认显示源站静态 marker，或提供明确的“选择分类开始显示”空状态。
+   - P2：补齐玩家长期使用工作流。
+     - [x] 新增 Checklists 面板，支持 New List、Reset、Completed Markers 显示策略、列表切换和完成状态统计。
+     - [x] 增加 IndexedDB 或 localStorage 持久化，保存 completed、favorites、pinned、hidden、custom lists、custom search presets 和 UI 设置。
+     - [ ] 新增 Draw 面板，支持 Toggle draw controls、Polyline color、Reset to default、绘制对象列表。
+     - [ ] 增加 Data import/export，导入 / 导出 search groups、drawn objects、checklists、完成状态和本地 UI 设置。
+     - [ ] 新增 Tools 面板，支持 Go to coordinates、复制当前坐标、打开源数据或项目链接。
+     - [ ] 实现地图右键菜单，支持复制 `(x,z)` / `(x,y,z)`，并读取 Settings 中的坐标格式配置。
+   - P3：补产品化质量。
+     - [ ] 加入点位聚合或 Canvas 渲染，优化大量点位性能。
+     - [ ] 增加移动端布局优化，支持窄屏边玩边查。
+     - [ ] 增加 Playwright 交互测试，覆盖侧栏面板切换、搜索、分类、区域覆盖层、Checklist、Draw 和 Tools。
+     - [ ] 增加浏览器视觉回归检查，防止侧边栏按钮、文字和地图状态条在不同视口重叠。
+
 0. UI 状态管理
    - 已完成：新增 Zustand store，统一维护图层、瓦片来源、对象数据来源、分类、搜索词和选中对象。
    - 已完成：分类筛选从单选改成多选，空选择表示不显示任何点位。
-   - 后续如果增加收藏、完成状态和自定义标记，也应继续放入状态层或持久化层，而不是直接塞回 `App.tsx`。
+   - 后续如果增加收藏、完成状态、自定义标记、绘制对象和导入导出状态，也应继续放入状态层或持久化层，而不是直接塞回 `App.tsx`。
 
 0.1 Filter 侧边栏交互
    - 已完成：侧边栏改成接近原站的左侧图标栏 + 两列分类按钮布局。
@@ -121,7 +147,7 @@ npm run build
    - 已完成：本地对象数据已接入 Fuse.js 搜索。
    - 已完成：普通搜索字段包括 `displayName`、`name`、`actor`、`drop.values`、`equipment`、`tags`、`mapName`、`fieldArea`、`region`、`category`、`layer`。
    - 已完成：结构化搜索支持 `actor:`、`category:`、`drop:`、`equipment:`、`map:`、`hash:`、`layer:`、`region:`、`location:`、`tag:`、`raw:`。
-   - 后续可继续增加搜索语法帮助面板、搜索建议和排序权重调优。
+   - 后续应先把搜索拆到独立 Search 面板，再继续增加搜索语法帮助、搜索建议、排序权重调优和源站式 Add/Remove from map。
 
 3. 分类扩展
    - 已完成：分类已扩展为 `location`、`place`、`cave`、`chasm`、`dragonTear`、`dispenser`、`korok`、`shop`、`lightroot`、`techLab`、`tower`、`shrine`、`chest`、`weapon`、`enemy`。
@@ -158,6 +184,7 @@ npm run build
    - 更清晰地区分“总结果数”和“当前渲染数”。
    - 增加快速清空搜索。
    - 增加更丰富的分类和图层统计。
+   - 侧栏拆分后，结果列表应归入 Search 面板，Filter 面板只保留分类和区域开关，降低滚动负担。
 
 8. 图标映射完善
    - 已完成：神庙、洞中神庙、呀哈哈、洞穴、商店、龙之泪、驿站、光根等静态标记会使用原站点图标。
@@ -176,10 +203,11 @@ npm run build
 
 ## 建议下一步
 
-优先继续处理交互细节。现在 `43583` 个离线对象已经可搜索、可分类，地图 marker 已按视口裁剪，结果列表已经虚拟化，`Visible map areas` 也已接入真实区域数据，核心筛选规则和对象标准化规则已有第一批测试/校验覆盖。
+优先继续处理源站侧边栏对齐。现在 `43583` 个离线对象已经可搜索、可分类，地图 marker 已按视口裁剪，结果列表已经虚拟化，`Visible map areas` 也已接入真实区域数据，核心筛选规则和对象标准化规则已有第一批测试/校验覆盖。下一阶段的产品差距主要不是数据，而是侧边栏工作区和玩家工作流。
 
 建议下一项：
 
-1. 增加搜索语法帮助入口和快速清空搜索。
-2. 补充浏览器端交互测试，覆盖结构化搜索、侧边栏点击、区域切换和地图状态条变化。
-3. 继续做 Add to map / Remove from map，把搜索结果固定显示或临时隐藏。
+1. 新增 Draw 面板的绘制开关、线颜色、重置默认颜色和绘制对象列表。
+2. 增加 Data import/export，覆盖 search groups、drawn objects、checklists、完成状态和本地 UI 设置。
+3. 再做 Tools 面板的 Go to coordinates、复制当前坐标和源数据入口。
+4. 实现地图右键菜单，支持复制 `(x,z)` / `(x,y,z)`。

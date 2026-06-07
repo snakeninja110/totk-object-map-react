@@ -5,6 +5,7 @@ import {
   categoryOrder,
 } from '../constants/mapConfig'
 import type { MapLayer, MapObject, ObjectDataSource } from '../types/map'
+import type { CompletedMarkerMode } from '../stores/mapUiStore'
 import {
   isObjectInViewport,
   isSourceStaticFilterCategory,
@@ -25,6 +26,8 @@ type UseVisibleObjectsParams = {
   activeCategories: Array<MapObject['category']>
   pinnedObjectIds: string[]
   hiddenObjectIds: string[]
+  completedObjectIds: string[]
+  completedMarkerMode: CompletedMarkerMode
   activeLayer: MapLayer
   mapZoom: number
   viewportBounds: ViewportBounds | null
@@ -38,6 +41,8 @@ export function useVisibleObjects({
   activeCategories,
   pinnedObjectIds,
   hiddenObjectIds,
+  completedObjectIds,
+  completedMarkerMode,
   activeLayer,
   mapZoom,
   viewportBounds,
@@ -48,9 +53,15 @@ export function useVisibleObjects({
   )
   const pinnedObjectSet = useMemo(() => new Set(pinnedObjectIds), [pinnedObjectIds])
   const hiddenObjectSet = useMemo(() => new Set(hiddenObjectIds), [hiddenObjectIds])
+  const completedObjectSet = useMemo(() => new Set(completedObjectIds), [completedObjectIds])
   const availableObjects = useMemo(
-    () => objects.filter((object) => !hiddenObjectSet.has(object.id)),
-    [hiddenObjectSet, objects],
+    () =>
+      objects.filter(
+        (object) =>
+          !hiddenObjectSet.has(object.id) &&
+          (completedMarkerMode !== 'hide' || !completedObjectSet.has(object.id)),
+      ),
+    [completedMarkerMode, completedObjectSet, hiddenObjectSet, objects],
   )
 
   const fuse = useMemo(

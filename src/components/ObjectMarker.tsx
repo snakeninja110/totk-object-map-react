@@ -19,6 +19,8 @@ type ObjectMarkerProps = {
   enableHoverEffects: boolean
   // 是否在 tooltip 中显示对象高度。
   showObjectHeight: boolean
+  // 是否在 Korok tooltip 中显示 Korok 编号。
+  showKorokId: boolean
   // 是否按 Actor 类型给兜底圆点 marker 上色。
   colorPerActor: boolean
   // 是否使用内部 Actor 名称作为 tooltip 标题。
@@ -35,6 +37,7 @@ export function ObjectMarker({
   showTooltip,
   enableHoverEffects,
   showObjectHeight,
+  showKorokId,
   colorPerActor,
   useActorNames,
   onSelect,
@@ -56,6 +59,7 @@ export function ObjectMarker({
             <ObjectTooltip
               object={object}
               showObjectHeight={showObjectHeight}
+              showKorokId={showKorokId}
               useActorNames={useActorNames}
             />
           ) : null}
@@ -81,6 +85,7 @@ export function ObjectMarker({
             <ObjectTooltip
               object={object}
               showObjectHeight={showObjectHeight}
+              showKorokId={showKorokId}
               useActorNames={useActorNames}
             />
           ) : null}
@@ -130,6 +135,7 @@ export function ObjectMarker({
           <ObjectTooltip
             object={object}
             showObjectHeight={showObjectHeight}
+            showKorokId={showKorokId}
             useActorNames={useActorNames}
           />
         ) : null}
@@ -170,16 +176,19 @@ function SelectedObjectPin({
 function ObjectTooltip({
   object,
   showObjectHeight,
+  showKorokId,
   useActorNames,
 }: {
   // 当前 hover 的对象。
   object: MapObject
   // 是否把对象 y 坐标作为高度追加到 tooltip。
   showObjectHeight: boolean
+  // 是否显示 Korok 编号。
+  showKorokId: boolean
   // 是否使用内部 Actor 名称显示 tooltip 标题。
   useActorNames: boolean
 }) {
-  const subtitles = getObjectTooltipSubtitles(object, showObjectHeight)
+  const subtitles = getObjectTooltipSubtitles(object, showObjectHeight, showKorokId)
 
   return (
     <Tooltip
@@ -197,7 +206,11 @@ function ObjectTooltip({
 }
 
 // 生成 hover 提示的副标题；优先展示掉落/宝箱内容，其次展示 Actor，避免 tooltip 过长。
-function getObjectTooltipSubtitles(object: MapObject, showObjectHeight: boolean) {
+function getObjectTooltipSubtitles(
+  object: MapObject,
+  showObjectHeight: boolean,
+  showKorokId: boolean,
+) {
   const subtitles: string[] = []
 
   if (object.drop?.values.length) {
@@ -210,6 +223,10 @@ function getObjectTooltipSubtitles(object: MapObject, showObjectHeight: boolean)
 
   if (showObjectHeight) {
     subtitles.push(`Height: ${object.y}`)
+  }
+
+  if (showKorokId && object.category === 'korok' && object.rawParams?.korok_id) {
+    subtitles.push(`Korok ID: ${object.rawParams.korok_id}`)
   }
 
   return subtitles

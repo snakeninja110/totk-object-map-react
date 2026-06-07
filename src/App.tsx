@@ -12,6 +12,8 @@ import type { ViewportBounds } from './utils/objectFilters'
 
 function App() {
   const activeSidebarPanel = useMapUiStore((state) => state.activeSidebarPanel)
+  const sidebarSide = useMapUiStore((state) => state.sidebarSide)
+  const sidebarCollapsed = useMapUiStore((state) => state.sidebarCollapsed)
   const activeLayer = useMapUiStore((state) => state.activeLayer)
   const tileSource = useMapUiStore((state) => state.tileSource)
   const objectSource = useMapUiStore((state) => state.objectSource)
@@ -23,6 +25,9 @@ function App() {
   const selectedObjectId = useMapUiStore((state) => state.selectedObjectId)
   const pinnedObjectIds = useMapUiStore((state) => state.pinnedObjectIds)
   const hiddenObjectIds = useMapUiStore((state) => state.hiddenObjectIds)
+  const checklists = useMapUiStore((state) => state.checklists)
+  const activeChecklistId = useMapUiStore((state) => state.activeChecklistId)
+  const completedMarkerMode = useMapUiStore((state) => state.completedMarkerMode)
   const showMapStatusBar = useMapUiStore((state) => state.showMapStatusBar)
   const showMarkerTooltips = useMapUiStore((state) => state.showMarkerTooltips)
   const enableMarkerHoverEffects = useMapUiStore((state) => state.enableMarkerHoverEffects)
@@ -35,10 +40,13 @@ function App() {
   const showObjectHeightsInTooltips = useMapUiStore(
     (state) => state.showObjectHeightsInTooltips,
   )
+  const showKorokIds = useMapUiStore((state) => state.showKorokIds)
   const inGameCoordinates = useMapUiStore((state) => state.inGameCoordinates)
   const customSearchPresets = useMapUiStore((state) => state.customSearchPresets)
   const copyCoordinatesXYZ = useMapUiStore((state) => state.copyCoordinatesXYZ)
   const setActiveSidebarPanel = useMapUiStore((state) => state.setActiveSidebarPanel)
+  const setSidebarSide = useMapUiStore((state) => state.setSidebarSide)
+  const setSidebarCollapsed = useMapUiStore((state) => state.setSidebarCollapsed)
   const setActiveLayer = useMapUiStore((state) => state.setActiveLayer)
   const setTileSource = useMapUiStore((state) => state.setTileSource)
   const setObjectSource = useMapUiStore((state) => state.setObjectSource)
@@ -50,9 +58,16 @@ function App() {
   const setQuery = useMapUiStore((state) => state.setQuery)
   const selectObject = useMapUiStore((state) => state.selectObject)
   const togglePinnedObject = useMapUiStore((state) => state.togglePinnedObject)
+  const pinObjects = useMapUiStore((state) => state.pinObjects)
   const hideObject = useMapUiStore((state) => state.hideObject)
+  const hideObjects = useMapUiStore((state) => state.hideObjects)
   const clearPinnedObjects = useMapUiStore((state) => state.clearPinnedObjects)
   const clearHiddenObjects = useMapUiStore((state) => state.clearHiddenObjects)
+  const createChecklist = useMapUiStore((state) => state.createChecklist)
+  const setActiveChecklist = useMapUiStore((state) => state.setActiveChecklist)
+  const resetActiveChecklist = useMapUiStore((state) => state.resetActiveChecklist)
+  const toggleChecklistObject = useMapUiStore((state) => state.toggleChecklistObject)
+  const setCompletedMarkerMode = useMapUiStore((state) => state.setCompletedMarkerMode)
   const setShowMapStatusBar = useMapUiStore((state) => state.setShowMapStatusBar)
   const setShowMarkerTooltips = useMapUiStore((state) => state.setShowMarkerTooltips)
   const setEnableMarkerHoverEffects = useMapUiStore(
@@ -69,6 +84,7 @@ function App() {
   const setShowObjectHeightsInTooltips = useMapUiStore(
     (state) => state.setShowObjectHeightsInTooltips,
   )
+  const setShowKorokIds = useMapUiStore((state) => state.setShowKorokIds)
   const setInGameCoordinates = useMapUiStore((state) => state.setInGameCoordinates)
   const addCustomSearchPreset = useMapUiStore((state) => state.addCustomSearchPreset)
   const updateCustomSearchPreset = useMapUiStore((state) => state.updateCustomSearchPreset)
@@ -86,10 +102,15 @@ function App() {
     searchMapType,
     searchMapName,
   })
+  const activeChecklist = useMemo(
+    () => checklists.find((checklist) => checklist.id === activeChecklistId) ?? checklists[0],
+    [activeChecklistId, checklists],
+  )
   const {
     selectedCategorySet,
     pinnedObjectSet,
     hiddenObjectSet,
+    searchedObjects,
     visibleObjects,
     resultListObjects,
     viewportObjects,
@@ -102,6 +123,8 @@ function App() {
     activeCategories,
     pinnedObjectIds,
     hiddenObjectIds,
+    completedObjectIds: activeChecklist?.completedObjectIds ?? [],
+    completedMarkerMode,
     activeLayer,
     mapZoom,
     viewportBounds,
@@ -113,9 +136,15 @@ function App() {
   )
 
   return (
-    <main className="app-shell">
+    <main
+      className={`app-shell sidebar-${sidebarSide} ${
+        sidebarCollapsed ? 'sidebar-collapsed' : ''
+      }`}
+    >
       <FilterSidebar
         activeSidebarPanel={activeSidebarPanel}
+        sidebarSide={sidebarSide}
+        sidebarCollapsed={sidebarCollapsed}
         activeLayer={activeLayer}
         tileSource={tileSource}
         objectSource={objectSource}
@@ -128,6 +157,9 @@ function App() {
         selectedCategorySet={selectedCategorySet}
         pinnedObjectSet={pinnedObjectSet}
         hiddenObjectSet={hiddenObjectSet}
+        checklists={checklists}
+        activeChecklistId={activeChecklist?.id ?? activeChecklistId}
+        completedMarkerMode={completedMarkerMode}
         showMapStatusBar={showMapStatusBar}
         showMarkerTooltips={showMarkerTooltips}
         enableMarkerHoverEffects={enableMarkerHoverEffects}
@@ -138,14 +170,19 @@ function App() {
         useActorNames={useActorNames}
         useHexForHashIds={useHexForHashIds}
         showObjectHeightsInTooltips={showObjectHeightsInTooltips}
+        showKorokIds={showKorokIds}
         inGameCoordinates={inGameCoordinates}
         customSearchPresets={customSearchPresets}
         copyCoordinatesXYZ={copyCoordinatesXYZ}
         categoryCounts={categoryCounts}
         visibleObjects={visibleObjects}
+        searchedObjects={searchedObjects}
         resultListObjects={resultListObjects}
+        renderedObjectCount={mapObjects.length}
         selectedObject={selectedObject}
         setActiveSidebarPanel={setActiveSidebarPanel}
+        setSidebarSide={setSidebarSide}
+        setSidebarCollapsed={setSidebarCollapsed}
         setActiveLayer={setActiveLayer}
         setTileSource={setTileSource}
         setObjectSource={setObjectSource}
@@ -157,9 +194,16 @@ function App() {
         setMapAreaFill={setMapAreaFill}
         selectObject={selectObject}
         togglePinnedObject={togglePinnedObject}
+        pinObjects={pinObjects}
         hideObject={hideObject}
+        hideObjects={hideObjects}
         clearPinnedObjects={clearPinnedObjects}
         clearHiddenObjects={clearHiddenObjects}
+        createChecklist={createChecklist}
+        setActiveChecklist={setActiveChecklist}
+        resetActiveChecklist={resetActiveChecklist}
+        toggleChecklistObject={toggleChecklistObject}
+        setCompletedMarkerMode={setCompletedMarkerMode}
         setShowMapStatusBar={setShowMapStatusBar}
         setShowMarkerTooltips={setShowMarkerTooltips}
         setEnableMarkerHoverEffects={setEnableMarkerHoverEffects}
@@ -170,6 +214,7 @@ function App() {
         setUseActorNames={setUseActorNames}
         setUseHexForHashIds={setUseHexForHashIds}
         setShowObjectHeightsInTooltips={setShowObjectHeightsInTooltips}
+        setShowKorokIds={setShowKorokIds}
         setInGameCoordinates={setInGameCoordinates}
         addCustomSearchPreset={addCustomSearchPreset}
         updateCustomSearchPreset={updateCustomSearchPreset}
@@ -193,6 +238,7 @@ function App() {
         showMarkerTooltips={showMarkerTooltips}
         enableMarkerHoverEffects={enableMarkerHoverEffects}
         showObjectHeightsInTooltips={showObjectHeightsInTooltips}
+        showKorokIds={showKorokIds}
         colorPerActor={colorPerActor}
         useActorNames={useActorNames}
         renderLocationLabels={selectedCategorySet.has('location')}

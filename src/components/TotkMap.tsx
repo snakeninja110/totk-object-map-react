@@ -56,6 +56,8 @@ type TotkMapProps = {
   enableMarkerHoverEffects: boolean
   // 是否在 marker hover tooltip 中显示对象高度。
   showObjectHeightsInTooltips: boolean
+  // 是否在 Korok tooltip 中显示 Korok 编号。
+  showKorokIds: boolean
   // 是否按 Actor 类型给圆点 marker 上色。
   colorPerActor: boolean
   // 是否使用内部 Actor 名称显示对象标题。
@@ -88,6 +90,7 @@ export function TotkMap({
   showMarkerTooltips,
   enableMarkerHoverEffects,
   showObjectHeightsInTooltips,
+  showKorokIds,
   colorPerActor,
   useActorNames,
   renderLocationLabels,
@@ -136,6 +139,7 @@ export function TotkMap({
             showTooltip={showMarkerTooltips}
             enableHoverEffects={enableMarkerHoverEffects}
             showObjectHeight={showObjectHeightsInTooltips}
+            showKorokId={showKorokIds}
             colorPerActor={colorPerActor}
             useActorNames={useActorNames}
             renderLocationLabel={renderLocationLabels}

@@ -1,5 +1,6 @@
 import {
-  CircleCheck,
+  ChevronLeft,
+  ChevronRight,
   EyeOff,
   Funnel,
   HelpCircle,
@@ -10,8 +11,10 @@ import {
   Settings,
   Trash2,
   Wrench,
+  X,
   Waypoints,
 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import {
   categoryIconAssets,
   categoryIcons,
@@ -32,13 +35,17 @@ import type {
   SearchPreset,
   TileSource,
 } from '../types/map'
+import type { SidebarPanel, SidebarSide } from '../stores/mapUiStore'
+import type { Checklist, CompletedMarkerMode } from '../stores/mapUiStore'
 import { VirtualResultList } from './VirtualResultList'
 
-type SidebarPanel = 'filter' | 'settings'
-
 type FilterSidebarProps = {
-  // 当前左侧功能面板；filter 展示筛选，settings 展示页面设置。
+  // 当前左侧功能面板；与源站 rail 的主要工作区保持一致。
   activeSidebarPanel: SidebarPanel
+  // 侧边栏当前停靠方向。
+  sidebarSide: SidebarSide
+  // 是否只显示 rail。
+  sidebarCollapsed: boolean
   // 当前地图层；控制 Layer 分段按钮的选中状态。
   activeLayer: MapLayer
   // 当前瓦片来源；控制 Local/Remote tiles 按钮的选中状态。
@@ -63,6 +70,12 @@ type FilterSidebarProps = {
   pinnedObjectSet: Set<string>
   // 当前临时隐藏的对象 ID 集合；用于展示隐藏数量和清空隐藏状态。
   hiddenObjectSet: Set<string>
+  // 当前会话中的 checklist 列表。
+  checklists: Checklist[]
+  // 当前选中的 checklist id。
+  activeChecklistId: string
+  // Completed markers 显示策略。
+  completedMarkerMode: CompletedMarkerMode
   // 是否显示地图状态条；Settings 面板开关会控制地图右上角状态信息。
   showMapStatusBar: boolean
   // 是否显示 marker hover tooltip。
@@ -83,6 +96,8 @@ type FilterSidebarProps = {
   useHexForHashIds: boolean
   // 是否在 marker tooltip 中显示高度。
   showObjectHeightsInTooltips: boolean
+  // 是否在 Korok tooltip 中显示编号。
+  showKorokIds: boolean
   // 是否用游戏内坐标顺序显示坐标。
   inGameCoordinates: boolean
   // 用户自定义搜索预设。
@@ -93,12 +108,20 @@ type FilterSidebarProps = {
   categoryCounts: Record<MapObject['category'], number>
   // 已通过图层、分类、搜索和源站规则筛选的对象；用于显示结果总数。
   visibleObjects: MapObject[]
+  // 搜索命中的对象；未必全部进入当前地图显示。
+  searchedObjects: MapObject[]
   // 侧边栏结果列表的数据源；实际 DOM 数量由 VirtualResultList 按滚动位置控制。
   resultListObjects: MapObject[]
+  // 当前视口渲染的 marker 数量。
+  renderedObjectCount: number
   // 当前详情面板选中的对象；用于在结果列表中高亮对应项。
   selectedObject: MapObject | null
   // 切换左侧功能面板。
   setActiveSidebarPanel: (panel: SidebarPanel) => void
+  // 切换侧边栏停靠方向。
+  setSidebarSide: (side: SidebarSide) => void
+  // 切换侧边栏折叠状态。
+  setSidebarCollapsed: (isCollapsed: boolean) => void
   // 切换地图层；由 Layer 分段按钮触发。
   setActiveLayer: (layer: MapLayer) => void
   // 切换瓦片来源；只影响底图瓦片，不影响对象数据来源。
@@ -121,12 +144,26 @@ type FilterSidebarProps = {
   selectObject: (id: string) => void
   // 固定或取消固定对象；固定对象仍遵守当前地图图层。
   togglePinnedObject: (id: string) => void
+  // 批量固定对象到地图。
+  pinObjects: (ids: string[]) => void
   // 临时隐藏对象；隐藏后对象不再出现在结果列表和地图上。
   hideObject: (id: string) => void
+  // 批量从地图移除对象。
+  hideObjects: (ids: string[]) => void
   // 清空全部固定对象。
   clearPinnedObjects: () => void
   // 清空全部隐藏对象。
   clearHiddenObjects: () => void
+  // 新建 checklist。
+  createChecklist: () => void
+  // 切换 active checklist。
+  setActiveChecklist: (checklistId: string) => void
+  // 重置当前 checklist。
+  resetActiveChecklist: () => void
+  // 切换对象完成状态。
+  toggleChecklistObject: (objectId: string) => void
+  // 切换 completed marker 显示策略。
+  setCompletedMarkerMode: (mode: CompletedMarkerMode) => void
   // 切换地图状态条显示。
   setShowMapStatusBar: (shouldShow: boolean) => void
   // 切换 marker hover tooltip。
@@ -147,6 +184,8 @@ type FilterSidebarProps = {
   setUseHexForHashIds: (shouldUse: boolean) => void
   // 切换 tooltip 高度显示。
   setShowObjectHeightsInTooltips: (shouldShow: boolean) => void
+  // 切换 Korok 编号显示。
+  setShowKorokIds: (shouldShow: boolean) => void
   // 切换游戏内坐标显示。
   setInGameCoordinates: (shouldUse: boolean) => void
   // 新增一条空白自定义搜索预设。
@@ -163,6 +202,8 @@ type FilterSidebarProps = {
 // 这里刻意保持为“受控组件”：所有状态和回调都从 App 传入，避免侧边栏内部再分叉数据来源逻辑。
 export function FilterSidebar({
   activeSidebarPanel,
+  sidebarSide,
+  sidebarCollapsed,
   activeLayer,
   tileSource,
   objectSource,
@@ -175,6 +216,9 @@ export function FilterSidebar({
   selectedCategorySet,
   pinnedObjectSet,
   hiddenObjectSet,
+  checklists,
+  activeChecklistId,
+  completedMarkerMode,
   showMapStatusBar,
   showMarkerTooltips,
   enableMarkerHoverEffects,
@@ -185,14 +229,19 @@ export function FilterSidebar({
   useActorNames,
   useHexForHashIds,
   showObjectHeightsInTooltips,
+  showKorokIds,
   inGameCoordinates,
   customSearchPresets,
   copyCoordinatesXYZ,
   categoryCounts,
   visibleObjects,
+  searchedObjects,
   resultListObjects,
+  renderedObjectCount,
   selectedObject,
   setActiveSidebarPanel,
+  setSidebarSide,
+  setSidebarCollapsed,
   setActiveLayer,
   setTileSource,
   setObjectSource,
@@ -204,9 +253,16 @@ export function FilterSidebar({
   setMapAreaFill,
   selectObject,
   togglePinnedObject,
+  pinObjects,
   hideObject,
+  hideObjects,
   clearPinnedObjects,
   clearHiddenObjects,
+  createChecklist,
+  setActiveChecklist,
+  resetActiveChecklist,
+  toggleChecklistObject,
+  setCompletedMarkerMode,
   setShowMapStatusBar,
   setShowMarkerTooltips,
   setEnableMarkerHoverEffects,
@@ -217,39 +273,87 @@ export function FilterSidebar({
   setUseActorNames,
   setUseHexForHashIds,
   setShowObjectHeightsInTooltips,
+  setShowKorokIds,
   setInGameCoordinates,
   addCustomSearchPreset,
   updateCustomSearchPreset,
   removeCustomSearchPreset,
   setCopyCoordinatesXYZ,
 }: FilterSidebarProps) {
+  const sidebarRailItems = [
+    {
+      id: 'search',
+      label: 'Search panel',
+      icon: <Search size={28} />,
+    },
+    {
+      id: 'filter',
+      label: 'Filter panel',
+      icon: <Funnel size={28} />,
+    },
+    {
+      id: 'checklist',
+      label: 'Checklists panel',
+      icon: <ListChecks size={28} />,
+    },
+    {
+      id: 'draw',
+      label: 'Draw panel',
+      icon: <Waypoints size={28} />,
+    },
+    {
+      id: 'tools',
+      label: 'Tools panel',
+      icon: <Wrench size={28} />,
+    },
+    {
+      id: 'settings',
+      label: 'Settings panel',
+      icon: <Settings size={28} />,
+    },
+  ] satisfies Array<{
+    id: SidebarPanel
+    label: string
+    icon: ReactNode
+  }>
+  const hasDisplaySeed =
+    query.trim().length > 0 || selectedCategorySet.size > 0 || pinnedObjectSet.size > 0
+
   return (
     <aside className="sidebar filter-sidebar" aria-label="Map controls">
       <nav className="filter-rail" aria-label="Filter sections">
-        <Search size={28} />
+        {sidebarRailItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={activeSidebarPanel === item.id ? 'active' : ''}
+            aria-label={item.label}
+            title={item.label}
+            onClick={() => setActiveSidebarPanel(item.id)}
+          >
+            {item.icon}
+          </button>
+        ))}
+        <div className="filter-rail-spacer" />
         <button
           type="button"
-          className={activeSidebarPanel === 'filter' ? 'active' : ''}
-          aria-label="Filter panel"
-          onClick={() => setActiveSidebarPanel('filter')}
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
-          <Funnel size={28} />
+          {sidebarCollapsed ? <ChevronRight size={26} /> : <ChevronLeft size={26} />}
         </button>
-        <ListChecks size={28} />
-        <Waypoints size={28} />
-        <CircleCheck size={28} />
-        <Wrench size={28} />
         <button
           type="button"
-          className={activeSidebarPanel === 'settings' ? 'active' : ''}
-          aria-label="Settings panel"
-          onClick={() => setActiveSidebarPanel('settings')}
+          aria-label={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'}
+          title={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'}
+          onClick={() => setSidebarSide(sidebarSide === 'left' ? 'right' : 'left')}
         >
-          <Settings size={28} />
+          {sidebarSide === 'left' ? <ChevronRight size={26} /> : <ChevronLeft size={26} />}
         </button>
       </nav>
 
-      <div className="filter-panel">
+      <div className="filter-panel" hidden={sidebarCollapsed}>
         {activeSidebarPanel === 'filter' ? (
           <>
             <header className="filter-header">
@@ -259,141 +363,23 @@ export function FilterSidebar({
               </button>
             </header>
 
-            <label className="search-box">
-              <Search size={17} />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name, actor, tag"
+            {!hasDisplaySeed ? (
+              <section
+                className="empty-state filter-empty-state"
+                aria-label="Map display empty state"
+              >
+                <strong>Select a category or search</strong>
+                <span>{objectStatusText}</span>
+              </section>
+            ) : null}
+
+            <section className="settings-section" aria-label="Korok display settings">
+              <h2>Koroks</h2>
+              <SettingsToggle
+                checked={showKorokIds}
+                label="Show Korok IDs"
+                onChange={setShowKorokIds}
               />
-            </label>
-
-            <section className="search-tools" aria-label="Search tools">
-          <div className="search-presets" aria-label="Search presets">
-            {[...searchPresets, ...customSearchPresets.filter(isValidPreset)].map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                className={query === preset.query ? 'active' : ''}
-                onClick={() => setQuery(preset.query)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
-          <details className="search-help">
-            <summary>
-              <HelpCircle size={17} />
-              Search syntax
-            </summary>
-            <div>
-              <p>Combine plain words with field filters. Every field filter must match.</p>
-              <code>category:chest drop:Arrow layer:Surface</code>
-              <ul>
-                <li>
-                  <strong>actor</strong>
-                  <span>Actor name, for example actor:TBox</span>
-                </li>
-                <li>
-                  <strong>category</strong>
-                  <span>chest, shrine, cave, enemy, weapon...</span>
-                </li>
-                <li>
-                  <strong>drop</strong>
-                  <span>Chest contents or enemy drops</span>
-                </li>
-                <li>
-                  <strong>map</strong>
-                  <span>Map unit or field area, for example map:A-1</span>
-                </li>
-                <li>
-                  <strong>hash</strong>
-                  <span>Object hash or objid</span>
-                </li>
-                <li>
-                  <strong>layer</strong>
-                  <span>Sky, Surface, or Depths</span>
-                </li>
-              </ul>
-            </div>
-          </details>
-            </section>
-
-            <section className="object-overrides" aria-label="Pinned and hidden objects">
-          <span>
-            <Pin size={16} />
-            {pinnedObjectSet.size} pinned
-          </span>
-          <button
-            type="button"
-            disabled={pinnedObjectSet.size === 0}
-            onClick={clearPinnedObjects}
-          >
-            Clear
-          </button>
-          <span>
-            <EyeOff size={16} />
-            {hiddenObjectSet.size} hidden
-          </span>
-          <button
-            type="button"
-            disabled={hiddenObjectSet.size === 0}
-            onClick={clearHiddenObjects}
-          >
-            Show all
-          </button>
-            </section>
-
-            <section className="control-group" aria-labelledby="layer-heading">
-          <h2 id="layer-heading">Layer</h2>
-          <div className="segmented">
-            {(['Sky', 'Surface', 'Depths'] as const).map((layer) => (
-              <button
-                key={layer}
-                type="button"
-                className={layer === activeLayer ? 'active' : ''}
-                onClick={() => setActiveLayer(layer)}
-              >
-                {layer}
-              </button>
-            ))}
-          </div>
-            </section>
-
-            <section className="control-group" aria-labelledby="tile-source-heading">
-          <h2 id="tile-source-heading">Tile source</h2>
-          <div className="segmented source-switch">
-            {(['local', 'remote'] as const).map((source) => (
-              <button
-                key={source}
-                type="button"
-                className={source === tileSource ? 'active' : ''}
-                onClick={() => setTileSource(source)}
-              >
-                {source === 'local' ? 'Local' : 'Remote'}
-              </button>
-            ))}
-          </div>
-            </section>
-
-            <section className="control-group" aria-labelledby="object-source-heading">
-          <h2 id="object-source-heading">Object data</h2>
-          <div className="segmented source-switch">
-            {(['local', 'remote'] as const).map((source) => (
-              <button
-                key={source}
-                type="button"
-                className={source === objectSource ? 'active' : ''}
-                onClick={() => setObjectSource(source)}
-              >
-                {source === 'local' ? 'Local Data' : 'Remote API'}
-              </button>
-            ))}
-          </div>
-          <p className={objectsError ? 'data-status error' : 'data-status'}>
-            {objectStatusText}
-          </p>
             </section>
 
             <section className="control-group" aria-labelledby="category-heading">
@@ -458,25 +444,14 @@ export function FilterSidebar({
             <span>Fill map areas with color</span>
           </label>
             </section>
-
-            <section className="results" aria-labelledby="results-heading">
-              <h2 id="results-heading">{visibleObjects.length} visible</h2>
-              <VirtualResultList
-                objects={resultListObjects}
-                selectedObjectId={selectedObject?.id ?? null}
-                pinnedObjectSet={pinnedObjectSet}
-                useActorNames={useActorNames}
-                onSelect={selectObject}
-                onTogglePinned={togglePinnedObject}
-                onHide={hideObject}
-              />
-            </section>
           </>
-        ) : (
+        ) : activeSidebarPanel === 'settings' ? (
           <SettingsPanel
             activeLayer={activeLayer}
             tileSource={tileSource}
             objectSource={objectSource}
+            objectsError={objectsError}
+            objectStatusText={objectStatusText}
             visibleObjectCount={visibleObjects.length}
             pinnedObjectCount={pinnedObjectSet.size}
             hiddenObjectCount={hiddenObjectSet.size}
@@ -493,6 +468,9 @@ export function FilterSidebar({
             inGameCoordinates={inGameCoordinates}
             customSearchPresets={customSearchPresets}
             copyCoordinatesXYZ={copyCoordinatesXYZ}
+            setActiveLayer={setActiveLayer}
+            setTileSource={setTileSource}
+            setObjectSource={setObjectSource}
             setShowMapStatusBar={setShowMapStatusBar}
             setShowMarkerTooltips={setShowMarkerTooltips}
             setEnableMarkerHoverEffects={setEnableMarkerHoverEffects}
@@ -509,9 +487,625 @@ export function FilterSidebar({
             removeCustomSearchPreset={removeCustomSearchPreset}
             setCopyCoordinatesXYZ={setCopyCoordinatesXYZ}
           />
+        ) : (
+          <SidebarWorkspacePanel
+            activeSidebarPanel={activeSidebarPanel}
+            query={query}
+            visibleObjectCount={visibleObjects.length}
+            searchedObjectCount={searchedObjects.length}
+            resultListCount={resultListObjects.length}
+            renderedObjectCount={renderedObjectCount}
+            searchPresets={searchPresets}
+            customSearchPresets={customSearchPresets}
+            resultListObjects={resultListObjects}
+            selectedObject={selectedObject}
+            pinnedObjectSet={pinnedObjectSet}
+            checklists={checklists}
+            activeChecklistId={activeChecklistId}
+            completedMarkerMode={completedMarkerMode}
+            pinnedObjectCount={pinnedObjectSet.size}
+            hiddenObjectCount={hiddenObjectSet.size}
+            useActorNames={useActorNames}
+            setQuery={setQuery}
+            selectObject={selectObject}
+            togglePinnedObject={togglePinnedObject}
+            pinObjects={pinObjects}
+            hideObject={hideObject}
+            hideObjects={hideObjects}
+            clearPinnedObjects={clearPinnedObjects}
+            clearHiddenObjects={clearHiddenObjects}
+            createChecklist={createChecklist}
+            setActiveChecklist={setActiveChecklist}
+            resetActiveChecklist={resetActiveChecklist}
+            toggleChecklistObject={toggleChecklistObject}
+            setCompletedMarkerMode={setCompletedMarkerMode}
+          />
         )}
       </div>
     </aside>
+  )
+}
+
+const workspacePanelContent: Record<
+  Exclude<SidebarPanel, 'filter' | 'settings'>,
+  { title: string; description: string }
+> = {
+  search: {
+    title: 'Search',
+    description: 'Dedicated workspace for queries, presets, result counts, and result actions.',
+  },
+  checklist: {
+    title: 'Checklists',
+    description: 'Workspace for completed markers, custom lists, visibility rules, and import/export.',
+  },
+  draw: {
+    title: 'Draw',
+    description: 'Workspace for map drawing controls, line color, reset, and drawn object data.',
+  },
+  tools: {
+    title: 'Tools',
+    description: 'Workspace for coordinate jump, coordinate copy, and source links.',
+  },
+}
+
+function SidebarWorkspacePanel({
+  activeSidebarPanel,
+  query,
+  visibleObjectCount,
+  searchedObjectCount,
+  resultListCount,
+  renderedObjectCount,
+  searchPresets,
+  customSearchPresets,
+  resultListObjects,
+  selectedObject,
+  pinnedObjectSet,
+  checklists,
+  activeChecklistId,
+  completedMarkerMode,
+  pinnedObjectCount,
+  hiddenObjectCount,
+  useActorNames,
+  setQuery,
+  selectObject,
+  togglePinnedObject,
+  pinObjects,
+  hideObject,
+  hideObjects,
+  clearPinnedObjects,
+  clearHiddenObjects,
+  createChecklist,
+  setActiveChecklist,
+  resetActiveChecklist,
+  toggleChecklistObject,
+  setCompletedMarkerMode,
+}: {
+  activeSidebarPanel: Exclude<SidebarPanel, 'filter' | 'settings'>
+  query: string
+  visibleObjectCount: number
+  searchedObjectCount: number
+  resultListCount: number
+  renderedObjectCount: number
+  searchPresets: SearchPreset[]
+  customSearchPresets: SearchPreset[]
+  resultListObjects: MapObject[]
+  selectedObject: MapObject | null
+  pinnedObjectSet: Set<string>
+  checklists: Checklist[]
+  activeChecklistId: string
+  completedMarkerMode: CompletedMarkerMode
+  pinnedObjectCount: number
+  hiddenObjectCount: number
+  useActorNames: boolean
+  setQuery: (query: string) => void
+  selectObject: (id: string) => void
+  togglePinnedObject: (objectId: string) => void
+  pinObjects: (objectIds: string[]) => void
+  hideObject: (objectId: string) => void
+  hideObjects: (objectIds: string[]) => void
+  clearPinnedObjects: () => void
+  clearHiddenObjects: () => void
+  createChecklist: () => void
+  setActiveChecklist: (checklistId: string) => void
+  resetActiveChecklist: () => void
+  toggleChecklistObject: (objectId: string) => void
+  setCompletedMarkerMode: (mode: CompletedMarkerMode) => void
+}) {
+  const panel = workspacePanelContent[activeSidebarPanel]
+
+  return (
+    <>
+      <header className="filter-header">
+        <h1>{panel.title}</h1>
+      </header>
+      {activeSidebarPanel === 'search' ? (
+        <SearchWorkspacePanel
+          query={query}
+          visibleObjectCount={visibleObjectCount}
+          searchedObjectCount={searchedObjectCount}
+          resultListCount={resultListCount}
+          renderedObjectCount={renderedObjectCount}
+          searchPresets={searchPresets}
+          customSearchPresets={customSearchPresets}
+          resultListObjects={resultListObjects}
+          selectedObject={selectedObject}
+          pinnedObjectSet={pinnedObjectSet}
+          pinnedObjectCount={pinnedObjectCount}
+          hiddenObjectCount={hiddenObjectCount}
+          useActorNames={useActorNames}
+          setQuery={setQuery}
+          selectObject={selectObject}
+          togglePinnedObject={togglePinnedObject}
+          pinObjects={pinObjects}
+          hideObject={hideObject}
+          hideObjects={hideObjects}
+          clearPinnedObjects={clearPinnedObjects}
+          clearHiddenObjects={clearHiddenObjects}
+        />
+      ) : activeSidebarPanel === 'checklist' ? (
+        <ChecklistWorkspacePanel
+          checklists={checklists}
+          activeChecklistId={activeChecklistId}
+          completedMarkerMode={completedMarkerMode}
+          resultListObjects={resultListObjects}
+          pinnedObjectCount={pinnedObjectCount}
+          hiddenObjectCount={hiddenObjectCount}
+          createChecklist={createChecklist}
+          setActiveChecklist={setActiveChecklist}
+          resetActiveChecklist={resetActiveChecklist}
+          toggleChecklistObject={toggleChecklistObject}
+          setCompletedMarkerMode={setCompletedMarkerMode}
+          clearPinnedObjects={clearPinnedObjects}
+          clearHiddenObjects={clearHiddenObjects}
+        />
+      ) : activeSidebarPanel === 'draw' ? (
+        <DrawWorkspacePanel />
+      ) : (
+        <ToolsWorkspacePanel />
+      )}
+      <section className="settings-section" aria-label={`${panel.title} status`}>
+        <h2>Workspace status</h2>
+        <p>{panel.description}</p>
+      </section>
+    </>
+  )
+}
+
+function SearchWorkspacePanel({
+  query,
+  visibleObjectCount,
+  searchedObjectCount,
+  resultListCount,
+  renderedObjectCount,
+  searchPresets,
+  customSearchPresets,
+  resultListObjects,
+  selectedObject,
+  pinnedObjectSet,
+  pinnedObjectCount,
+  hiddenObjectCount,
+  useActorNames,
+  setQuery,
+  selectObject,
+  togglePinnedObject,
+  pinObjects,
+  hideObject,
+  hideObjects,
+  clearPinnedObjects,
+  clearHiddenObjects,
+}: {
+  query: string
+  visibleObjectCount: number
+  searchedObjectCount: number
+  resultListCount: number
+  renderedObjectCount: number
+  searchPresets: SearchPreset[]
+  customSearchPresets: SearchPreset[]
+  resultListObjects: MapObject[]
+  selectedObject: MapObject | null
+  pinnedObjectSet: Set<string>
+  pinnedObjectCount: number
+  hiddenObjectCount: number
+  useActorNames: boolean
+  setQuery: (query: string) => void
+  selectObject: (id: string) => void
+  togglePinnedObject: (objectId: string) => void
+  pinObjects: (objectIds: string[]) => void
+  hideObject: (objectId: string) => void
+  hideObjects: (objectIds: string[]) => void
+  clearPinnedObjects: () => void
+  clearHiddenObjects: () => void
+}) {
+  const resultObjectIds = resultListObjects.map((object) => object.id)
+
+  return (
+    <>
+      <div className="search-box">
+        <Search size={17} />
+        <input
+          aria-label="Search objects"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search name, actor, tag"
+        />
+        {query ? (
+          <button type="button" aria-label="Clear search" title="Clear search" onClick={() => setQuery('')}>
+            <X size={17} />
+          </button>
+        ) : null}
+      </div>
+      <section className="search-tools" aria-label="Search tools">
+        <div className="search-presets" aria-label="Search presets">
+          {[...searchPresets, ...customSearchPresets.filter(isValidPreset)].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              className={query === preset.query ? 'active' : ''}
+              onClick={() => setQuery(preset.query)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
+        <details className="search-help">
+          <summary>
+            <HelpCircle size={17} />
+            Search syntax
+          </summary>
+          <div className="search-help-body">
+            <section>
+              <h3>Query basics</h3>
+              <p>
+                Plain words search object names, actor names, map names, drops, equipment, tags,
+                and ids.
+              </p>
+              <code>silver lynel</code>
+              <p>Use quotes when a name or value contains spaces.</p>
+              <code>"Rospro Pass"</code>
+            </section>
+            <section>
+              <h3>Fields</h3>
+              <ul>
+                <li>
+                  <strong>actor</strong>
+                  <span>Actor name, for example actor:TBox</span>
+                </li>
+                <li>
+                  <strong>category</strong>
+                  <span>chest, shrine, cave, enemy, weapon...</span>
+                </li>
+                <li>
+                  <strong>drop</strong>
+                  <span>Chest contents or enemy drops</span>
+                </li>
+                <li>
+                  <strong>equipment</strong>
+                  <span>Equipped weapon, shield, bow, or armor text</span>
+                </li>
+                <li>
+                  <strong>map</strong>
+                  <span>Map unit, field area, or map name, for example map:A-1</span>
+                </li>
+                <li>
+                  <strong>hash</strong>
+                  <span>Object id, objid, or hash id</span>
+                </li>
+                <li>
+                  <strong>layer</strong>
+                  <span>Sky, Surface, or Depths</span>
+                </li>
+                <li>
+                  <strong>region</strong>
+                  <span>Region text from the object index</span>
+                </li>
+                <li>
+                  <strong>location</strong>
+                  <span>Location id, display name, object name, or actor name</span>
+                </li>
+                <li>
+                  <strong>tag</strong>
+                  <span>Object tags such as static map marker groups</span>
+                </li>
+                <li>
+                  <strong>raw</strong>
+                  <span>Raw parameter key/value text</span>
+                </li>
+              </ul>
+            </section>
+            <section>
+              <h3>Boolean matching</h3>
+              <p>
+                Space-separated words and field filters are combined with AND. Every term must
+                match the same object.
+              </p>
+              <code>category:chest drop:Arrow layer:Surface</code>
+            </section>
+            <section>
+              <h3>Examples</h3>
+              <ul>
+                <li>
+                  <strong>Surface chests</strong>
+                  <span>category:chest layer:Surface</span>
+                </li>
+                <li>
+                  <strong>Arrow drops</strong>
+                  <span>drop:Arrow</span>
+                </li>
+                <li>
+                  <strong>Map unit</strong>
+                  <span>map:A-1</span>
+                </li>
+                <li>
+                  <strong>Quoted map</strong>
+                  <span>map:"MainField A-1"</span>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </details>
+      </section>
+      <section className="settings-status" aria-label="Search summary">
+        <h2>Current results</h2>
+        <dl>
+          <div>
+            <dt>Search</dt>
+            <dd>{searchedObjectCount}</dd>
+          </div>
+          <div>
+            <dt>Map</dt>
+            <dd>{visibleObjectCount}</dd>
+          </div>
+          <div>
+            <dt>Rendered</dt>
+            <dd>{renderedObjectCount}</dd>
+          </div>
+          <div>
+            <dt>List</dt>
+            <dd>{resultListCount}</dd>
+          </div>
+        </dl>
+      </section>
+      <section className="search-map-actions" aria-label="Search map actions">
+        <button
+          type="button"
+          disabled={resultObjectIds.length === 0}
+          onClick={() => pinObjects(resultObjectIds)}
+        >
+          Add visible to map
+        </button>
+        <button
+          type="button"
+          disabled={resultObjectIds.length === 0}
+          onClick={() => hideObjects(resultObjectIds)}
+        >
+          Remove visible from map
+        </button>
+      </section>
+      <section className="object-overrides" aria-label="Pinned and hidden objects">
+        <span>
+          <Pin size={16} />
+          {pinnedObjectCount} pinned
+        </span>
+        <button type="button" disabled={pinnedObjectCount === 0} onClick={clearPinnedObjects}>
+          Clear
+        </button>
+        <span>
+          <EyeOff size={16} />
+          {hiddenObjectCount} hidden
+        </span>
+        <button type="button" disabled={hiddenObjectCount === 0} onClick={clearHiddenObjects}>
+          Show all
+        </button>
+      </section>
+      <section className="results" aria-labelledby="results-heading">
+        <h2 id="results-heading">{visibleObjectCount} visible</h2>
+        <VirtualResultList
+          objects={resultListObjects}
+          selectedObjectId={selectedObject?.id ?? null}
+          pinnedObjectSet={pinnedObjectSet}
+          useActorNames={useActorNames}
+          onSelect={selectObject}
+          onTogglePinned={togglePinnedObject}
+          onHide={hideObject}
+        />
+      </section>
+    </>
+  )
+}
+
+function ChecklistWorkspacePanel({
+  checklists,
+  activeChecklistId,
+  completedMarkerMode,
+  resultListObjects,
+  pinnedObjectCount,
+  hiddenObjectCount,
+  createChecklist,
+  setActiveChecklist,
+  resetActiveChecklist,
+  toggleChecklistObject,
+  setCompletedMarkerMode,
+  clearPinnedObjects,
+  clearHiddenObjects,
+}: {
+  checklists: Checklist[]
+  activeChecklistId: string
+  completedMarkerMode: CompletedMarkerMode
+  resultListObjects: MapObject[]
+  pinnedObjectCount: number
+  hiddenObjectCount: number
+  createChecklist: () => void
+  setActiveChecklist: (checklistId: string) => void
+  resetActiveChecklist: () => void
+  toggleChecklistObject: (objectId: string) => void
+  setCompletedMarkerMode: (mode: CompletedMarkerMode) => void
+  clearPinnedObjects: () => void
+  clearHiddenObjects: () => void
+}) {
+  const activeChecklist = checklists.find((checklist) => checklist.id === activeChecklistId)
+  const completedObjectSet = new Set(activeChecklist?.completedObjectIds ?? [])
+  const completedInResults = resultListObjects.filter((object) =>
+    completedObjectSet.has(object.id),
+  ).length
+  const checklistObjects = resultListObjects.slice(0, 40)
+
+  return (
+    <>
+      <section className="settings-section" aria-label="Checklist selector">
+        <h2>List</h2>
+        <select
+          value={activeChecklist?.id ?? ''}
+          onChange={(event) => setActiveChecklist(event.target.value)}
+        >
+          {checklists.map((checklist) => (
+            <option key={checklist.id} value={checklist.id}>
+              {checklist.name}
+            </option>
+          ))}
+        </select>
+        <div className="workspace-actions">
+          <button type="button" onClick={createChecklist}>
+            New List
+          </button>
+          <button
+            type="button"
+            disabled={!activeChecklist || activeChecklist.completedObjectIds.length === 0}
+            onClick={resetActiveChecklist}
+          >
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-status" aria-label="Checklist summary">
+        <h2>Current lists</h2>
+        <dl>
+          <div>
+            <dt>Lists</dt>
+            <dd>{checklists.length}</dd>
+          </div>
+          <div>
+            <dt>Pinned</dt>
+            <dd>{pinnedObjectCount}</dd>
+          </div>
+          <div>
+            <dt>Hidden</dt>
+            <dd>{hiddenObjectCount}</dd>
+          </div>
+          <div>
+            <dt>Completed</dt>
+            <dd>{activeChecklist?.completedObjectIds.length ?? 0}</dd>
+          </div>
+          <div>
+            <dt>In results</dt>
+            <dd>{completedInResults}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="settings-section" aria-label="Completed marker display">
+        <h2>Completed Markers</h2>
+        <label className="settings-radio">
+          <input
+            type="radio"
+            name="completed-marker-mode"
+            checked={completedMarkerMode === 'show'}
+            onChange={() => setCompletedMarkerMode('show')}
+          />
+          <span>Show completed markers</span>
+        </label>
+        <label className="settings-radio">
+          <input
+            type="radio"
+            name="completed-marker-mode"
+            checked={completedMarkerMode === 'hide'}
+            onChange={() => setCompletedMarkerMode('hide')}
+          />
+          <span>Hide completed markers</span>
+        </label>
+      </section>
+
+      <section className="checklist-results" aria-label="Checklist result markers">
+        <h2>Current results</h2>
+        {checklistObjects.length > 0 ? (
+          checklistObjects.map((object) => (
+            <label key={object.id} className="checklist-result-row">
+              <input
+                type="checkbox"
+                checked={completedObjectSet.has(object.id)}
+                onChange={() => toggleChecklistObject(object.id)}
+              />
+              <span>{object.displayName || object.name}</span>
+            </label>
+          ))
+        ) : (
+          <p>Search or select categories to add markers to this list.</p>
+        )}
+      </section>
+
+      <div className="workspace-actions">
+        <button type="button" disabled={pinnedObjectCount === 0} onClick={clearPinnedObjects}>
+          Clear pinned
+        </button>
+        <button type="button" disabled={hiddenObjectCount === 0} onClick={clearHiddenObjects}>
+          Show hidden
+        </button>
+      </div>
+    </>
+  )
+}
+
+function DrawWorkspacePanel() {
+  return (
+    <>
+      <section className="settings-section" aria-label="Draw controls">
+        <h2>Draw controls</h2>
+        <button type="button" className="settings-add-button" disabled>
+          Toggle draw controls
+        </button>
+        <label className="workspace-color-control">
+          <span>Polyline color</span>
+          <input type="color" value="#3388ff" disabled />
+        </label>
+      </section>
+      <div className="workspace-actions">
+        <button type="button" disabled>
+          Reset to default
+        </button>
+        <button type="button" disabled>
+          Export
+        </button>
+        <button type="button" disabled>
+          Import
+        </button>
+      </div>
+    </>
+  )
+}
+
+function ToolsWorkspacePanel() {
+  return (
+    <>
+      <section className="settings-section" aria-label="Coordinate tools">
+        <h2>Coordinate tools</h2>
+        <button type="button" className="settings-add-button" disabled>
+          Go to coordinates...
+        </button>
+        <button type="button" className="settings-add-button" disabled>
+          Copy current coordinates
+        </button>
+      </section>
+      <section className="settings-section" aria-label="Source links">
+        <h2>Source links</h2>
+        <a href="https://objmap-totk.zeldamods.org/" target="_blank" rel="noreferrer">
+          Source map
+        </a>
+        <a href="https://github.com/zeldamods/objmap-totk" target="_blank" rel="noreferrer">
+          Source project
+        </a>
+      </section>
+    </>
   )
 }
 
@@ -519,6 +1113,8 @@ function SettingsPanel({
   activeLayer,
   tileSource,
   objectSource,
+  objectsError,
+  objectStatusText,
   visibleObjectCount,
   pinnedObjectCount,
   hiddenObjectCount,
@@ -535,6 +1131,9 @@ function SettingsPanel({
   inGameCoordinates,
   customSearchPresets,
   copyCoordinatesXYZ,
+  setActiveLayer,
+  setTileSource,
+  setObjectSource,
   setShowMapStatusBar,
   setShowMarkerTooltips,
   setEnableMarkerHoverEffects,
@@ -557,6 +1156,10 @@ function SettingsPanel({
   tileSource: TileSource
   // 当前对象数据来源；用于设置页状态摘要。
   objectSource: ObjectDataSource
+  // 对象数据加载错误信息。
+  objectsError: string | null
+  // 对象数据加载状态文案。
+  objectStatusText: string
   // 当前可见对象数；帮助用户判断设置对地图显示的影响。
   visibleObjectCount: number
   // 当前固定对象数量。
@@ -589,6 +1192,12 @@ function SettingsPanel({
   customSearchPresets: SearchPreset[]
   // 是否复制三维坐标。
   copyCoordinatesXYZ: boolean
+  // 切换地图层。
+  setActiveLayer: (layer: MapLayer) => void
+  // 切换瓦片来源。
+  setTileSource: (source: TileSource) => void
+  // 切换对象数据来源。
+  setObjectSource: (source: ObjectDataSource) => void
   // 切换地图状态条显示。
   setShowMapStatusBar: (shouldShow: boolean) => void
   // 切换 marker hover tooltip。
@@ -627,6 +1236,57 @@ function SettingsPanel({
       <header className="filter-header">
         <h1>Settings</h1>
       </header>
+
+      <section className="settings-section" aria-label="Layer settings">
+        <h2>Layer</h2>
+        <div className="segmented">
+          {(['Sky', 'Surface', 'Depths'] as const).map((layer) => (
+            <button
+              key={layer}
+              type="button"
+              className={layer === activeLayer ? 'active' : ''}
+              onClick={() => setActiveLayer(layer)}
+            >
+              {layer}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-section" aria-label="Tile source settings">
+        <h2>Tile source</h2>
+        <div className="segmented source-switch">
+          {(['local', 'remote'] as const).map((source) => (
+            <button
+              key={source}
+              type="button"
+              className={source === tileSource ? 'active' : ''}
+              onClick={() => setTileSource(source)}
+            >
+              {source === 'local' ? 'Local' : 'Remote'}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-section" aria-label="Object data settings">
+        <h2>Object data</h2>
+        <div className="segmented source-switch">
+          {(['local', 'remote'] as const).map((source) => (
+            <button
+              key={source}
+              type="button"
+              className={source === objectSource ? 'active' : ''}
+              onClick={() => setObjectSource(source)}
+            >
+              {source === 'local' ? 'Local Data' : 'Remote API'}
+            </button>
+          ))}
+        </div>
+        <p className={objectsError ? 'data-status error' : 'data-status'}>
+          {objectStatusText}
+        </p>
+      </section>
 
       <section className="settings-section" aria-label="Search map settings">
         <h2>Map</h2>

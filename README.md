@@ -286,11 +286,40 @@ src/
 - [x] 为区域覆盖层补充基础规则测试和本地服务验证
 - [x] 抽出对象标准化共享规则，统一前端远程模式和离线构建脚本
 - [x] 增强对象详情，展示宝箱内容、掉落物、地图单元和原始参数
-- [ ] 加入 IndexedDB 或本地存储，保存已完成、收藏和自定义标记
+### 源站侧边栏对齐优先级
+
+浏览器对比源站后，当前最大差距集中在侧边栏工作区。源站左侧 rail 是 `Search`、`Filter`、`Draw`、`Checklists`、`Tools`、`Settings` 六个完整入口；当前本项目只有 `Filter` 和 `Settings` 两个可操作面板，其他图标仍是视觉占位。
+
+P0：补齐侧边栏工作区骨架，消除空入口
+
+- [x] 把 `activeSidebarPanel` 从 `filter | settings` 扩展为 `search | filter | checklist | draw | tools | settings`
+- [x] 让左侧 rail 的 Search、Checklist、Draw、Completed/Checklists、Tools 图标全部变成可点击按钮
+- [x] 给每个面板增加标题、空状态和基础控件，避免点击后出现空白或只停留在当前页
+- [x] 支持侧边栏左右切换或折叠入口，至少保留源站 `Move to the right side` 的等价能力
+
+P1：拆分 Search 和 Filter，让 Filter 回到源站语义
+
+- [x] 新增独立 Search 面板，迁移当前搜索框、搜索预设和搜索语法帮助
+- [x] 在 Search 面板补充源站式帮助：基础关键词、精确短语、字段过滤、布尔组合、常用示例
+- [x] 增加快速清空搜索、搜索结果数量、当前渲染数量和 Add/Remove from map 操作区
+- [x] Filter 面板只保留分类按钮、`Show Korok IDs`、Visible map areas 和区域过滤
+- [x] 调整默认显示策略，避免首屏在已加载 `43583` 个对象后仍显示 `0 visible` 造成误解
+
+P2：补齐玩家工作流
+
+- [x] 新增 Checklists 面板：New List、Reset、Completed Markers 显示策略
+- [x] 加入 IndexedDB 或 localStorage，保存已完成、收藏、固定、隐藏、自定义列表和自定义搜索预设
+- [ ] 新增 Draw 面板：画线开关、线颜色、重置默认颜色、绘制对象列表
+- [ ] 新增 Data import/export：导入 / 导出 search groups、drawn objects、checklists 和本地 UI 状态
+- [ ] 新增 Tools 面板：Go to coordinates、复制当前坐标、打开源数据/项目链接
+- [ ] 实现地图右键菜单，支持复制 `(x,z)` / `(x,y,z)` 坐标并应用 Settings 中的坐标格式选项
+
+P3：产品化完善
+
 - [ ] 加入点位聚合或 Canvas 渲染，优化大量点位性能
-- [ ] 增加导入 / 导出 JSON 功能
-- [ ] 增加移动端布局优化
-- [ ] 增加 Playwright 基础交互测试
+- [ ] 增加移动端布局优化，支持边玩边查的窄屏使用场景
+- [ ] 增加 Playwright 基础交互测试，覆盖侧栏切换、搜索、分类、区域、Checklist、Draw 和 Tools
+- [ ] 增加浏览器视觉回归检查，防止侧边栏按钮、文字和地图状态条在不同视口重叠
 
 ## 数据来源说明
 
